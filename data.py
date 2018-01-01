@@ -1,14 +1,16 @@
 import os
 
-from torch.utils.data import Dataset
 import scipy.misc
+from torch.utils.data import Dataset
 
 
 class MotionDataset(Dataset):
     def __init__(self, data_path, split, mode = 'DIFF'):
+        #
         self.path = data_path
         self.mode = mode.upper()
 
+        #
         self.data = open(os.path.join(data_path, '{0}.txt'.format(split))).read().splitlines()
 
     def __getitem__(self, index):
@@ -18,8 +20,7 @@ class MotionDataset(Dataset):
 
             inputs = (im1, im2)
             targets = im2 - im1
-
-        return inputs, targets
+            return inputs, targets
 
     def __len__(self):
         return len(self.data)

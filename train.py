@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import utils
 from data import MotionDataset
 
 if __name__ == '__main__':
@@ -55,6 +56,14 @@ if __name__ == '__main__':
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)
     print('==> optimizer loaded')
+
+    # experiment path
+    exp_path = os.path.join('exp', args.exp)
+    utils.shell.mkdir(exp_path, clean = False)
+
+    # logger
+    logger = utils.Logger(exp_path)
+    print('==> save logs to {0}'.format(exp_path))
 
     # snapshot
     if args.resume is not None:
