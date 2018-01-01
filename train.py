@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 import utils
 from data import MotionDataset
+from networks import VDNet
 
 if __name__ == '__main__':
     # argument parser
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     print('[size] = {0} + {1}'.format(len(data['train']), len(data['test'])))
 
     # model
-    model = None
+    model = VDNet()
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)

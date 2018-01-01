@@ -5,14 +5,17 @@ import torch.nn as nn
 
 class MotionEncoder(nn.Module):
     def __init__(self):
+        super(MotionEncoder, self).__init__()
         pass
 
     def forward(self, inputs):
-        pass
+        mu, sigma = None, None
+        return mu, sigma
 
 
 class KernelDecoder(nn.Module):
     def __init__(self):
+        super(KernelDecoder, self).__init__()
         pass
 
     def forward(self, inputs):
@@ -21,6 +24,7 @@ class KernelDecoder(nn.Module):
 
 class ImageEncoder(nn.Module):
     def __init__(self):
+        super(ImageEncoder, self).__init__()
         pass
 
     def forward(self, inputs):
@@ -29,7 +33,33 @@ class ImageEncoder(nn.Module):
 
 class MotionDecoder(nn.Module):
     def __init__(self):
+        super(MotionDecoder, self).__init__()
         pass
 
     def forward(self, inputs):
+        pass
+
+
+class VDNet(nn.Module):
+    def __init__(self):
+        super(VDNet, self).__init__()
+
+        self.image_encoder = ImageEncoder()
+        self.motion_encoder = MotionEncoder()
+        self.kernel_decoder = KernelDecoder()
+        self.motion_decoder = MotionDecoder()
+        self.l = nn.Linear(1, 1)
+
+    def forward(self, inputs):
+        # f = self.image_encoder.forward(inputs)
+        # mu, sigma = self.motion_encoder.forward(inputs)
+        #
+        # z = None
+        #
+        # k = self.kernel_decoder.forward(z)
+        #
+        # m = F.conv(f, k)
+        #
+        # outputs = self.motion_decoder.forward(m)
+        # return outputs
         pass
