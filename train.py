@@ -1,10 +1,13 @@
 from __future__ import print_function
+
 import argparse
-from data import MotionDataset
-from torch.utils.data import DataLoader
 import os
+
 import torch
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from data import MotionDataset
 
 if __name__ == '__main__':
     # argument parser
@@ -16,15 +19,19 @@ if __name__ == '__main__':
 
     # dataset
     parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/shapes/')
+    parser.add_argument('--workers', default = 8, type = int)
+    parser.add_argument('--batch', default = 128, type = int)
+
+    # optimization
+    parser.add_argument('--learning_rate', default = 0.001, type = float)
+    parser.add_argument('--grad_clip', default = 1., type = float)
 
     # training
     parser.add_argument('--epochs', default = 128, type = int)
-    parser.add_argument('--batch', default = 128, type = int)
     parser.add_argument('--snapshot', default = 1, type = int)
-    parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--gpu', default = '0')
 
-    # parse arguments
+    # arguments
     args = parser.parse_args()
     print('==> arguments parsed')
     for key in vars(args):
@@ -46,9 +53,10 @@ if __name__ == '__main__':
     model = None
 
     # optimizer
-    optimizer = None
+    optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)
+    print('==> optimizer loaded')
 
-    # load the snapshot of model and optimizer
+    # snapshot
     if args.resume is not None:
         if os.path.isfile(args.resume):
             snapshot = torch.load(args.resume)
@@ -61,6 +69,7 @@ if __name__ == '__main__':
     else:
         epoch = 0
 
+    # training
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
 
