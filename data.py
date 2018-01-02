@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 from torch.utils.data import Dataset
 
 from utils.image import load_image, resize_image
@@ -25,13 +24,15 @@ class MotionDataset(Dataset):
         # image inputs
         i_inputs = []
         for input_scale in self.input_scales:
-            i_inputs.append(resize_image(m1, size = int(m1.shape[-1] * input_scale), channel_first = True))
+            i = resize_image(m1, size = int(m1.shape[-1] * input_scale), channel_first = True)
+            i_inputs.append(i)
 
         # inputs & targets
         inputs = (i_inputs, m_inputs)
-        targets = resize_image(m2, size = self.target_size, channel_first = True).astype(np.float32) - \
-                  resize_image(m1, size = self.target_size, channel_first = True).astype(np.float32)
-        return inputs, targets
+        targets = resize_image(m2, size = self.target_size, channel_first = True) - \
+                  resize_image(m1, size = self.target_size, channel_first = True)
+
+        return inputs, targets * 128.
 
     def __len__(self):
         return len(self.data)
