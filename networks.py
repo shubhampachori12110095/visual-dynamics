@@ -93,20 +93,29 @@ class KernelDecoder(nn.Module):
 
 
 class MotionDecoder(nn.Module):
-    def __init__(self, scales):
+    def __init__(self, scales, channels, kernal_sizes):
         super(MotionDecoder, self).__init__()
 
         # settings
         self.scales = scales
 
+        # decoder
+        self.decoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes,
+                                  batch_norm = True, nonlinear_type = 'RELU', last_nonlinear = False,
+                                  sampling_type = 'NONE', sampling_sizes = 1)
+
     def forward(self, inputs):
+        # upsampling
         for k, input in enumerate(inputs):
             scale_factor = int(self.scales[-1] / self.scales[k])
             if scale_factor != 1:
                 inputs[k] = F.upsample(input, scale_factor = scale_factor, mode = 'nearest')
 
-        for k, input in enumerate(inputs):
-            print(input.size())
+        # inputs & outputs
+        inputs = torch.cat(inputs, 1)
+        outputs = self.decoder.forward(inputs)
+        return outputs
+
 
 class VDNet(nn.Module):
     def __init__(self, scales = [.25, .5, 1, 2]):
@@ -134,7 +143,9 @@ class VDNet(nn.Module):
                                             num_groups = 32)
 
         # motion decoder
-        self.motion_decoder = MotionDecoder(scales = scales)
+        self.motion_decoder = MotionDecoder(scales = scales,
+                                            channels = [len(scales) * 32, 128, 128, 7],
+                                            kernal_sizes = [9, 1, 1])
 
     def forward(self, inputs, sampling_type = 'NONE'):
         # sanity check
