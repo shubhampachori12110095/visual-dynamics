@@ -11,8 +11,8 @@ class MotionEncoder(nn.Module):
     def forward(self, inputs):
         inputs = torch.cat(inputs, 1)
 
-        mu, sigma = None, None
-        return mu, sigma
+        mean, logvar = None, None
+        return mean, logvar
 
 
 class KernelDecoder(nn.Module):
@@ -56,15 +56,19 @@ class VDNet(nn.Module):
         self.l = nn.Linear(1, 1)
 
     def forward(self, inputs):
-        # im1, im2 = inputs
+        if self.training:
+            mean, logvar = self.motion_encoder.forward(inputs)
+            z = None
+        else:
+            z = None
 
-        mu, sigma = self.motion_encoder.forward(inputs)
+        # k = self.kernel_decoder.forward(z)
+
+        f = self.image_encoder.forward(inputs[0] if self.training else inputs)
 
         # f = self.image_encoder.forward(inputs)
         #
-        # z = None
         #
-        # k = self.kernel_decoder.forward(z)
         #
         # m = F.conv(f, k)
         #

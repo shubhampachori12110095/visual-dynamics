@@ -10,7 +10,7 @@ from tqdm import tqdm
 import utils
 from data import MotionDataset
 from networks import VDNet
-from utils.torch import Logger, to_var
+from utils.torch import Logger, load_snapshot, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -69,14 +69,7 @@ if __name__ == '__main__':
 
     # snapshot
     if args.resume is not None:
-        if os.path.isfile(args.resume):
-            snapshot = torch.load(args.resume)
-            epoch = snapshot['epoch']
-            model.load_state_dict(snapshot['model'])
-            optimizer.load_state_dict(snapshot['optimizer'])
-            print('==> snapshot "{0}" loaded (epoch {1})'.format(args.resume, epoch))
-        else:
-            raise FileNotFoundError('no snapshot found at "{0}"'.format(args.resume))
+        epoch = load_snapshot(model, optimizer, args.resume)
     else:
         epoch = 0
 
@@ -84,8 +77,11 @@ if __name__ == '__main__':
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
 
+        model.train()
         for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0}'.format(epoch + 1)):
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
-            model.forward(inputs)
+            outputs, (mean, logvar) = model.forward(inputs)
+
+        model.test()
