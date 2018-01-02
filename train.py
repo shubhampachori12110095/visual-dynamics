@@ -41,8 +41,7 @@ if __name__ == '__main__':
         print('[{0}] = {1}'.format(key, getattr(args, key)))
 
     # cuda devices
-    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    utils.set_cuda_devices(args.gpu)
 
     # datasets & loaders
     data, loaders = {}, {}
@@ -82,6 +81,8 @@ if __name__ == '__main__':
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
-            outputs, (mean, logvar) = model.forward(inputs)
+            outputs, params = model.forward(inputs)
+
+            print(outputs.size())
 
         model.test()

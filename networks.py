@@ -181,5 +181,8 @@ class VDNet(nn.Module):
             features[k] = conv_cross2d(feature, kernel, padding = padding, groups = num_groups)
 
         outputs = self.motion_decoder.forward(features)
-        print(outputs.size())
-        return outputs
+
+        if sampling_type == 'NONE':
+            return outputs, params
+        else:
+            return outputs
