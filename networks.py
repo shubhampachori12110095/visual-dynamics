@@ -8,7 +8,7 @@ from utils.torch import ConvPool2D, GaussianSampler, conv_cross2d, weights_init
 
 
 class ImageEncoder(nn.Module):
-    def __init__(self, scales, channels, kernal_sizes, sampling_sizes):
+    def __init__(self, scales, channels, kernal_sizes, batch_norm, nonlinear_type, sampling_type, sampling_sizes):
         super(ImageEncoder, self).__init__()
 
         # settings
@@ -17,9 +17,9 @@ class ImageEncoder(nn.Module):
         # encoders
         self.encoders = []
         for k, scale in enumerate(scales):
-            self.encoders.append(ConvPool2D(channels = channels, kernel_sizes = kernal_sizes,
-                                            batch_norm = True, nonlinear_type = 'RELU', last_nonlinear = True,
-                                            sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes))
+            self.encoders.append(ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, batch_norm = batch_norm,
+                                            nonlinear_type = nonlinear_type, last_nonlinear = True,
+                                            sampling_type = sampling_type, sampling_sizes = sampling_sizes))
             self.add_module('encoder-{0}'.format(k + 1), self.encoders[-1])
 
     def forward(self, inputs):
@@ -31,14 +31,14 @@ class ImageEncoder(nn.Module):
 
 
 class MotionEncoder(nn.Module):
-    def __init__(self, channels, kernal_sizes, sampling_sizes):
+    def __init__(self, channels, kernal_sizes, batch_norm, nonlinear_type, sampling_type, sampling_sizes):
         super(MotionEncoder, self).__init__()
 
         # encoder
         self.encoder = nn.Sequential(
             ConvPool2D(channels = channels, kernel_sizes = kernal_sizes,
-                       batch_norm = True, nonlinear_type = 'RELU', last_nonlinear = True,
-                       sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes),
+                       batch_norm = batch_norm, nonlinear_type = nonlinear_type, last_nonlinear = True,
+                       sampling_type = sampling_type, sampling_sizes = sampling_sizes),
             nn.Conv2d(channels[-1], channels[-1], 4, 1, 0)
         )
         self.encoder.apply(weights_init)
@@ -62,7 +62,8 @@ class MotionEncoder(nn.Module):
 
 
 class KernelDecoder(nn.Module):
-    def __init__(self, num_scales, in_channels, out_channels, kernel_size, num_groups):
+    def __init__(self, num_scales, in_channels, out_channels, kernel_size, num_groups,
+                 num_layers, kernel_sizes, batch_norm, nonlinear_type, sampling_type, sampling_sizes):
         super(KernelDecoder, self).__init__()
 
         # settings
@@ -77,9 +78,9 @@ class KernelDecoder(nn.Module):
 
         # decoder
         self.decoder = nn.Sequential(
-            ConvPool2D(channels = [self.num_channels] * 3, kernel_sizes = 5,
-                       batch_norm = True, nonlinear_type = 'RELU', last_nonlinear = False,
-                       sampling_type = 'NONE', sampling_sizes = 1),
+            ConvPool2D(channels = [self.num_channels] * num_layers, kernel_sizes = kernel_sizes,
+                       batch_norm = batch_norm, nonlinear_type = nonlinear_type, last_nonlinear = False,
+                       sampling_type = sampling_type, sampling_sizes = sampling_sizes),
             nn.BatchNorm2d(self.num_channels)
         )
         self.decoder.apply(weights_init)
@@ -93,7 +94,7 @@ class KernelDecoder(nn.Module):
 
 
 class MotionDecoder(nn.Module):
-    def __init__(self, scales, channels, kernal_sizes):
+    def __init__(self, scales, channels, kernal_sizes, batch_norm, nonlinear_type, sampling_type, sampling_sizes):
         super(MotionDecoder, self).__init__()
 
         # settings
@@ -101,8 +102,8 @@ class MotionDecoder(nn.Module):
 
         # decoder
         self.decoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes,
-                                  batch_norm = True, nonlinear_type = 'RELU', last_nonlinear = False,
-                                  sampling_type = 'NONE', sampling_sizes = 1)
+                                  batch_norm = batch_norm, nonlinear_type = nonlinear_type, last_nonlinear = False,
+                                  sampling_type = sampling_type, sampling_sizes = sampling_sizes)
 
     def forward(self, inputs):
         # upsampling
@@ -125,33 +126,32 @@ class VDNet(nn.Module):
         self.scales = scales
 
         # image encoder
-        self.image_encoder = ImageEncoder(scales = scales,
-                                          channels = [3, 64, 64, 64, 32],
-                                          kernal_sizes = 5,
-                                          sampling_sizes = [2, 1, 2, 1])
+        self.image_encoder = ImageEncoder(scales = scales, channels = [3, 64, 64, 64, 32], kernal_sizes = 5,
+                                          batch_norm = True, nonlinear_type = 'RELU',
+                                          sampling_type = 'SUB-MAXPOOL', sampling_sizes = [2, 1, 2, 1])
 
         # motion encoder
-        self.motion_encoder = MotionEncoder(channels = [6, 96, 96, 128, 128, 256, 256],
-                                            kernal_sizes = 5,
-                                            sampling_sizes = [4, 1, 2, 1, 2, 1])
+        self.motion_encoder = MotionEncoder(channels = [6, 96, 96, 128, 128, 256, 256], kernal_sizes = 5,
+                                            batch_norm = True, nonlinear_type = 'RELU',
+                                            sampling_type = 'SUB-MAXPOOL', sampling_sizes = [4, 1, 2, 1, 2, 1])
 
         # kernel decoder
-        self.kernel_decoder = KernelDecoder(num_scales = len(scales),
-                                            in_channels = 32,
-                                            out_channels = 32,
-                                            kernel_size = 5,
-                                            num_groups = 32)
+        self.kernel_decoder = KernelDecoder(num_scales = len(scales), in_channels = 32, out_channels = 32,
+                                            kernel_size = 5, num_groups = 32,
+                                            num_layers = 3, kernel_sizes = 5,
+                                            batch_norm = True, nonlinear_type = 'RELU',
+                                            sampling_type = 'NONE', sampling_sizes = 1)
 
         # motion decoder
-        self.motion_decoder = MotionDecoder(scales = scales,
-                                            channels = [len(scales) * 32, 128, 128, 7],
-                                            kernal_sizes = [9, 1, 1])
+        self.motion_decoder = MotionDecoder(scales = scales, channels = [len(scales) * 32, 128, 128, 7],
+                                            kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
+                                            sampling_type = 'NONE', sampling_sizes = 1)
 
     def forward(self, inputs, sampling_type = 'NONE'):
         # sanity check
         assert sampling_type in ['NONE'], 'unsupported sampling type "{0}"'.format(sampling_type)
 
-        #
+        # inputs
         if sampling_type == 'NONE':
             i_inputs, m_inputs = inputs
         else:
