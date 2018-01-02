@@ -4,13 +4,14 @@ import argparse
 import os
 
 import torch
+from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import utils
 from data import MotionDataset
 from networks import VDNet
-from utils.torch import Logger, load_snapshot, to_var
+from utils.torch import Logger, kld_loss, load_snapshot, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -26,8 +27,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch', default = 8, type = int)
 
     # optimization
+    parser.add_argument('--weight_kl', default = 0.00001, type = float)
     parser.add_argument('--learning_rate', default = 0.01, type = float)
-    parser.add_argument('--grad_clip', default = 1., type = float)
 
     # training
     parser.add_argument('--epochs', default = 128, type = int)
@@ -81,8 +82,19 @@ if __name__ == '__main__':
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
-            outputs, params = model.forward(inputs)
+            optimizer.zero_grad()
+            outputs, (mean, log_var) = model.forward(inputs)
 
-            print(outputs.size())
+            # reconstruction & kl divergence loss
+            loss_r = mse_loss(outputs, targets)
+            loss_kl = kld_loss(mean, log_var)
+
+            # overall loss
+            loss = loss_r + args.weight_kl * loss_kl
+
+            # print(loss_r.data[0], loss_kl.data[0], loss.data[0])
+
+            loss.backward()
+            optimizer.step()
 
         model.test()
