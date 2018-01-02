@@ -143,7 +143,7 @@ class VDNet(nn.Module):
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
         # motion decoder
-        self.motion_decoder = MotionDecoder(scales = scales, channels = [len(scales) * 32, 128, 128, 7],
+        self.motion_decoder = MotionDecoder(scales = scales, channels = [len(scales) * 32, 128, 128, 3],
                                             kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
@@ -180,6 +180,7 @@ class VDNet(nn.Module):
             # cross convolution
             features[k] = conv_cross2d(feature, kernel, padding = padding, groups = num_groups)
 
+        # motion decoder
         outputs = self.motion_decoder.forward(features)
 
         if sampling_type == 'NONE':
