@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 import utils
 from data import MotionDataset
+from misc import visualize
 from networks import VDNet
 from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_var
 
@@ -122,6 +123,26 @@ if __name__ == '__main__':
             logger.scalar_summary('test_loss_r', loss_r.data[0], step)
             logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
 
+        # todo: adapt weight kl
+
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             # save snapshot
             save_snapshot(epoch + 1, model, optimizer, exp_path)
+
+            # visualize reconstruction
+            for split in ['train', 'test']:
+                inputs, targets = iter(loaders[split]).next()
+                inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
+
+                # forward
+                outputs, _ = model.forward(inputs)
+
+                # visualize
+                outputs = visualize(inputs[0], outputs)
+                targets = visualize(inputs[0], targets)
+                inputs = visualize(inputs[0])
+
+                # image summary
+                logger.image_summary('{0}-inputs'.format(split), inputs, step)
+                logger.image_summary('{0}-outputs'.format(split), outputs, step)
+                logger.image_summary('{0}-targets'.format(split), targets, step)
