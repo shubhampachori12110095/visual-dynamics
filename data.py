@@ -16,10 +16,10 @@ class MotionDataset(Dataset):
 
     def __getitem__(self, index):
         if self.mode == 'DIFF':
-            a = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), channel_first = True)
-            b = load_image(os.path.join(self.path, '{0}_im2.png'.format(index)), channel_first = True)
+            im1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), channel_first = True)
+            im2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(index)), channel_first = True)
 
-            inputs, targets = (a, b), (b - a)
+            inputs, targets = (im1, im2), (im2 - im1)
         else:
             raise NotImplementedError('unsupported dataset mode "{0}"'.format(self.mode))
 

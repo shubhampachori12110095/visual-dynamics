@@ -1,14 +1,16 @@
 from __future__ import print_function
 
+import torch
 import torch.nn as nn
 
 
 class MotionEncoder(nn.Module):
     def __init__(self):
         super(MotionEncoder, self).__init__()
-        pass
 
     def forward(self, inputs):
+        inputs = torch.cat(inputs, 1)
+
         mu, sigma = None, None
         return mu, sigma
 
@@ -41,8 +43,11 @@ class MotionDecoder(nn.Module):
 
 
 class VDNet(nn.Module):
-    def __init__(self):
+    def __init__(self, scales = [1]):
         super(VDNet, self).__init__()
+
+        # todo: multiple scales
+        self.scales = scales
 
         self.image_encoder = ImageEncoder()
         self.motion_encoder = MotionEncoder()
@@ -51,8 +56,11 @@ class VDNet(nn.Module):
         self.l = nn.Linear(1, 1)
 
     def forward(self, inputs):
+        # im1, im2 = inputs
+
+        mu, sigma = self.motion_encoder.forward(inputs)
+
         # f = self.image_encoder.forward(inputs)
-        # mu, sigma = self.motion_encoder.forward(inputs)
         #
         # z = None
         #

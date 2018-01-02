@@ -10,6 +10,7 @@ from tqdm import tqdm
 import utils
 from data import MotionDataset
 from networks import VDNet
+from utils.torch import Logger, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -22,7 +23,7 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/shapes/')
     parser.add_argument('--workers', default = 8, type = int)
-    parser.add_argument('--batch', default = 128, type = int)
+    parser.add_argument('--batch', default = 8, type = int)
 
     # optimization
     parser.add_argument('--learning_rate', default = 0.001, type = float)
@@ -63,7 +64,7 @@ if __name__ == '__main__':
     utils.shell.mkdir(exp_path, clean = False)
 
     # logger
-    logger = utils.Logger(exp_path)
+    logger = Logger(exp_path)
     print('==> save logs to {0}'.format(exp_path))
 
     # snapshot
@@ -84,4 +85,7 @@ if __name__ == '__main__':
         step = epoch * len(data['train'])
 
         for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0}'.format(epoch + 1)):
-            print(inputs, targets)
+            inputs, targets = to_var(inputs), to_var(targets)
+
+            # forward
+            model.forward(inputs)
