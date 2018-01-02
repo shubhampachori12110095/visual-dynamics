@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import os
 
+import numpy as np
 import torch
 from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
@@ -30,6 +31,8 @@ if __name__ == '__main__':
     # optimization
     parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--weight_kl', default = 0.00001, type = float)
+    parser.add_argument('--target_loss', default = 16., type = float)
+    parser.add_argument('--max_weight', default = np.inf, type = float)
 
     # training
     parser.add_argument('--epochs', default = 1024, type = int)
@@ -108,7 +111,7 @@ if __name__ == '__main__':
 
         loss_r, loss_kl = 0, 0
         for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0} test'.format(epoch + 1)):
-            inputs, targets = to_var(inputs), to_var(targets)
+            inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
             # forward
             outputs, (mean, log_var) = model.forward(inputs)
@@ -121,7 +124,11 @@ if __name__ == '__main__':
         logger.scalar_summary('test_loss_r', loss_r.data[0], step)
         logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
 
-        # todo: adapt weight kl
+        # adjust kl weight
+        if args.target_loss is not None and loss_r.data[0] < args.target_loss:
+            if loss_kl.data[0] * args.weight_kl < loss_r.data[0] and args.weight_kl < args.max_weight:
+                args.weight_kl = min(args.weight_kl * 2, args.max_weight)
+                print('==> adjusted kl weight to {0}'.format(args.weight_kl))
 
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             # save snapshot
