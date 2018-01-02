@@ -53,7 +53,7 @@ if __name__ == '__main__':
     print('[size] = {0} + {1}'.format(len(data['train']), len(data['test'])))
 
     # model
-    model = VDNet()
+    model = VDNet().cuda()
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)
