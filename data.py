@@ -13,7 +13,7 @@ class MotionDataset(Dataset):
         self.target_size = target_size
 
         # dataset list
-        self.data = open(os.path.join(data_path, '{0}.txt'.format(split))).read().splitlines()[:32]
+        self.data = open(os.path.join(data_path, '{0}.txt'.format(split))).read().splitlines()
 
     def __getitem__(self, index):
         # motion inputs
