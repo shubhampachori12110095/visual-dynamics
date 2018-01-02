@@ -28,8 +28,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch', default = 8, type = int)
 
     # optimization
+    parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--weight_kl', default = 0.00001, type = float)
-    parser.add_argument('--learning_rate', default = 0.01, type = float)
 
     # training
     parser.add_argument('--epochs', default = 1024, type = int)
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
         # training
         model.train()
-        for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0}'.format(epoch + 1)):
+        for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0} train'.format(epoch + 1)):
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
@@ -105,23 +105,21 @@ if __name__ == '__main__':
 
         # testing
         model.train(False)
-        for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0}'.format(epoch + 1)):
+
+        loss_r, loss_kl = 0, 0
+        for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0} test'.format(epoch + 1)):
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
             outputs, (mean, log_var) = model.forward(inputs)
 
             # reconstruction & kl divergence loss
-            loss_r = mse_loss(outputs, targets)
-            loss_kl = kld_loss(mean, log_var)
+            loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
+            loss_kl += kld_loss(mean, log_var) * targets.size(0) / len(data['test'])
 
-            # overall loss
-            loss = loss_r + args.weight_kl * loss_kl
-
-            # scalar summary
-            logger.scalar_summary('test_loss', loss.data[0], step)
-            logger.scalar_summary('test_loss_r', loss_r.data[0], step)
-            logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
+        # scalar summary
+        logger.scalar_summary('test_loss_r', loss_r.data[0], step)
+        logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
 
         # todo: adapt weight kl
 

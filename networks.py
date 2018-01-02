@@ -162,7 +162,7 @@ class VDNet(nn.Module):
 
         # motion encoder
         if sampling_type == 'NONE':
-            z, params = self.motion_encoder.forward(m_inputs)
+            z, (mean, log_var) = self.motion_encoder.forward(m_inputs)
         else:
             assert False
 
@@ -184,6 +184,6 @@ class VDNet(nn.Module):
         outputs = self.motion_decoder.forward(features)
 
         if sampling_type == 'NONE':
-            return outputs, params
+            return outputs, (mean, log_var)
         else:
             return outputs
