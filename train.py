@@ -21,12 +21,12 @@ if __name__ == '__main__':
     parser.add_argument('--resume', default = None)
 
     # dataset
-    parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/shapes/')
+    parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
 
     # optimization
-    parser.add_argument('--learning_rate', default = 0.001, type = float)
+    parser.add_argument('--learning_rate', default = 0.01, type = float)
     parser.add_argument('--grad_clip', default = 1., type = float)
 
     # training
