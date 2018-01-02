@@ -17,8 +17,8 @@ class MotionDataset(Dataset):
 
     def __getitem__(self, index):
         # motion inputs
-        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), channel_first = True)
-        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(index)), channel_first = True)
+        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(self.data[index])), channel_first = True)
+        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(self.data[index])), channel_first = True)
         m_inputs = (m1, m2)
 
         # image inputs

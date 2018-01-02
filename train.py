@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', default = 0.01, type = float)
 
     # training
-    parser.add_argument('--epochs', default = 128, type = int)
+    parser.add_argument('--epochs', default = 1024, type = int)
     parser.add_argument('--snapshot', default = 1, type = int)
     parser.add_argument('--gpu', default = '0')
 
@@ -76,6 +76,7 @@ if __name__ == '__main__':
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
 
+        # training
         model.train()
         for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0}'.format(epoch + 1)):
             inputs, targets = to_var(inputs), to_var(targets)
@@ -92,16 +93,35 @@ if __name__ == '__main__':
             loss = loss_r + args.weight_kl * loss_kl
 
             # scalar summary
-            logger.scalar_summary('loss', loss.data[0], step)
-            logger.scalar_summary('loss_r', loss_r.data[0], step)
-            logger.scalar_summary('loss_kl', loss_kl.data[0], step)
+            logger.scalar_summary('train_loss', loss.data[0], step)
+            logger.scalar_summary('train_loss_r', loss_r.data[0], step)
+            logger.scalar_summary('train_loss_kl', loss_kl.data[0], step)
             step += targets.size(0)
 
             # backward
             loss.backward()
             optimizer.step()
 
-        model.test()
+        # testing
+        model.train(False)
+        for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0}'.format(epoch + 1)):
+            inputs, targets = to_var(inputs), to_var(targets)
+
+            # forward
+            outputs, (mean, log_var) = model.forward(inputs)
+
+            # reconstruction & kl divergence loss
+            loss_r = mse_loss(outputs, targets)
+            loss_kl = kld_loss(mean, log_var)
+
+            # overall loss
+            loss = loss_r + args.weight_kl * loss_kl
+
+            # scalar summary
+            logger.scalar_summary('test_loss', loss.data[0], step)
+            logger.scalar_summary('test_loss_r', loss_r.data[0], step)
+            logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
+
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             # save snapshot
             save_snapshot(epoch + 1, model, optimizer, exp_path)
