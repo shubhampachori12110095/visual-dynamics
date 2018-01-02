@@ -11,7 +11,7 @@ from tqdm import tqdm
 import utils
 from data import MotionDataset
 from networks import VDNet
-from utils.torch import Logger, kld_loss, load_snapshot, to_var
+from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -67,13 +67,12 @@ if __name__ == '__main__':
     logger = Logger(exp_path)
     print('==> save logs to {0}'.format(exp_path))
 
-    # snapshot
+    # load snapshot
     if args.resume is not None:
         epoch = load_snapshot(model, optimizer, args.resume)
     else:
         epoch = 0
 
-    # training
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
 
@@ -92,9 +91,17 @@ if __name__ == '__main__':
             # overall loss
             loss = loss_r + args.weight_kl * loss_kl
 
-            # print(loss_r.data[0], loss_kl.data[0], loss.data[0])
+            # scalar summary
+            logger.scalar_summary('loss', loss.data[0], step)
+            logger.scalar_summary('loss_r', loss_r.data[0], step)
+            logger.scalar_summary('loss_kl', loss_kl.data[0], step)
+            step += targets.size(0)
 
+            # backward
             loss.backward()
             optimizer.step()
 
         model.test()
+        if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
+            # save snapshot
+            save_snapshot(epoch + 1, model, optimizer, exp_path)
