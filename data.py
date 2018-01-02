@@ -6,23 +6,30 @@ from utils.image import load_image
 
 
 class MotionDataset(Dataset):
-    def __init__(self, data_path, split, mode = 'DIFF'):
+    def __init__(self, data_path, split, scales = [.25, .5, 1, 2]):
         # settings
         self.path = data_path
-        self.mode = mode.upper()
+        self.scales = scales
 
-        # data list
+        # dataset list
         self.data = open(os.path.join(data_path, '{0}.txt'.format(split))).read().splitlines()
 
     def __getitem__(self, index):
-        if self.mode == 'DIFF':
-            im1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), channel_first = True)
-            im2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(index)), channel_first = True)
+        # motion inputs
+        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), channel_first = True)
+        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(index)), channel_first = True)
+        m_inputs = (m1, m2)
 
-            inputs, targets = (im1, im2), (im2 - im1)
-        else:
-            raise NotImplementedError('unsupported dataset mode "{0}"'.format(self.mode))
+        # image inputs
+        i_inputs = []
+        for scale in self.scales:
+            size = int(m1.shape[-1] * scale)
+            i = load_image(os.path.join(self.path, '{0}_im1.png'.format(index)), size = size, channel_first = True)
+            i_inputs.append(i)
 
+        # inputs & targets
+        inputs = (i_inputs, m_inputs)
+        targets = m2 - m1
         return inputs, targets
 
     def __len__(self):
