@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from utils.torch import ConvPool2D, GaussianSampler, conv_cross2d, weights_init
 
@@ -92,12 +93,20 @@ class KernelDecoder(nn.Module):
 
 
 class MotionDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, scales):
         super(MotionDecoder, self).__init__()
 
-    def forward(self, inputs):
-        pass
+        # settings
+        self.scales = scales
 
+    def forward(self, inputs):
+        for k, input in enumerate(inputs):
+            scale_factor = int(self.scales[-1] / self.scales[k])
+            if scale_factor != 1:
+                inputs[k] = F.upsample(input, scale_factor = scale_factor, mode = 'nearest')
+
+        for k, input in enumerate(inputs):
+            print(input.size())
 
 class VDNet(nn.Module):
     def __init__(self, scales = [.25, .5, 1, 2]):
@@ -124,7 +133,8 @@ class VDNet(nn.Module):
                                             kernel_size = 5,
                                             num_groups = 32)
 
-        # self.motion_decoder = MotionDecoder()
+        # motion decoder
+        self.motion_decoder = MotionDecoder(scales = scales)
 
     def forward(self, inputs, sampling_type = 'NONE'):
         # sanity check
@@ -159,6 +169,6 @@ class VDNet(nn.Module):
             # cross convolution
             features[k] = conv_cross2d(feature, kernel, padding = padding, groups = num_groups)
 
-        # outputs = self.motion_decoder.forward(features)
-        # return outputs
-        pass
+        outputs = self.motion_decoder.forward(features)
+        print(outputs.size())
+        return outputs
