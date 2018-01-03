@@ -135,20 +135,18 @@ if __name__ == '__main__':
             save_snapshot(exp_path, epoch + 1, model, optimizer)
 
             # visualization
-            num_samples = 4
-
             for split in ['train', 'test']:
                 inputs, targets = iter(loaders[split]).next()
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
                 # forward (recontruction & sampling)
+                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(4)]
                 outputs = model.forward(inputs, params = None)
-                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(num_samples)]
 
                 # visualize
+                samples = [visualize(inputs[0], sample) for sample in samples]
                 outputs = visualize(inputs[0], outputs)
                 targets = visualize(inputs[0], targets)
-                samples = [visualize(inputs[0], samples[k]) for k in range(num_samples)]
                 inputs = visualize(inputs[0])
 
                 # image summary
@@ -156,5 +154,5 @@ if __name__ == '__main__':
                 logger.image_summary('{0}-outputs'.format(split), zip(inputs, outputs), step)
                 logger.image_summary('{0}-targets'.format(split), zip(inputs, targets), step)
 
-                for k in range(num_samples):
-                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, samples[k]), step)
+                for k, sample in enumerate(samples):
+                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
