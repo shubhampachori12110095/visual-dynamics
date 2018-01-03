@@ -3,6 +3,7 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 from utils.torch import ConvPool2D, GaussianSampler, conv_cross2d, weights_init
 
@@ -147,12 +148,12 @@ class VDNet(nn.Module):
                                             kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
-    def forward(self, inputs, sampling_type = 'NONE'):
+    def forward(self, inputs, params = ['mean', 'log_var'], sampling = 'NONE'):
         # sanity check
-        assert sampling_type in ['NONE'], 'unsupported sampling type "{0}"'.format(sampling_type)
+        assert sampling in ['NONE'], 'unsupported sampling type "{0}"'.format(sampling)
 
         # inputs
-        if sampling_type == 'NONE':
+        if sampling == 'NONE':
             i_inputs, m_inputs = inputs
         else:
             i_inputs = inputs
@@ -161,10 +162,13 @@ class VDNet(nn.Module):
         features = self.image_encoder.forward(i_inputs)
 
         # motion encoder
-        if sampling_type == 'NONE':
+        if sampling == 'NONE':
             z, (mean, log_var) = self.motion_encoder.forward(m_inputs)
-        else:
-            assert False
+        elif sampling == 'PRIOR':
+            size = (inputs[0].size(0), 3200)
+            z = Variable(torch.normal(torch.zeros(size), torch.ones(size)).cuda())
+        elif sampling == 'EMPIRICAL':
+            pass
 
         # kernel decoder
         kernels = self.kernel_decoder.forward(z)
@@ -183,7 +187,14 @@ class VDNet(nn.Module):
         # motion decoder
         outputs = self.motion_decoder.forward(features)
 
-        if sampling_type == 'NONE':
-            return outputs, (mean, log_var)
-        else:
-            return outputs
+        # params
+        if params is not None:
+            values = []
+            for p in params:
+                if p in locals():
+                    values.append(locals()[p])
+
+            if len(values) > 0:
+                return outputs, values
+
+        return outputs

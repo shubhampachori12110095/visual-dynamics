@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
-        epoch = load_snapshot(model, optimizer, args.resume)
+        epoch = load_snapshot(args.resume, model, optimizer)
     else:
         epoch = 0
 
@@ -132,22 +132,30 @@ if __name__ == '__main__':
 
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             # save snapshot
-            save_snapshot(epoch + 1, model, optimizer, exp_path)
+            save_snapshot(exp_path, epoch + 1, model, optimizer)
 
-            # visualize reconstruction
+            # visualization
+            num_samples = 4
+
             for split in ['train', 'test']:
                 inputs, targets = iter(loaders[split]).next()
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-                # forward
-                outputs, _ = model.forward(inputs)
+                # forward (sampling & recontruction)
+                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(num_samples)]
+                outputs = model.forward(inputs, params = None)
 
                 # visualize
+                samples = [visualize(inputs[0], samples[k]) for k in range(num_samples)]
                 outputs = visualize(inputs[0], outputs)
                 targets = visualize(inputs[0], targets)
                 inputs = visualize(inputs[0])
 
                 # image summary
                 logger.image_summary('{0}-inputs'.format(split), inputs, step)
+
+                for k in range(num_samples):
+                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), samples[k], step)
+
                 logger.image_summary('{0}-outputs'.format(split), outputs, step)
                 logger.image_summary('{0}-targets'.format(split), targets, step)
