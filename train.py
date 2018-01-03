@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # optimization
     parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--weight_kl', default = 0.00001, type = float)
-    parser.add_argument('--target_loss', default = 16., type = float)
+    parser.add_argument('--target_loss', default = 10., type = float)
     parser.add_argument('--max_weight', default = np.inf, type = float)
 
     # training

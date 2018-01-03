@@ -120,11 +120,12 @@ class MotionDecoder(nn.Module):
 
 
 class VDNet(nn.Module):
-    def __init__(self, scales = [.25, .5, 1, 2]):
+    def __init__(self, scales = [.25, .5, 1, 2], z_size = 3200):
         super(VDNet, self).__init__()
 
         # settings
         self.scales = scales
+        self.z_size = z_size
 
         # image encoder
         self.image_encoder = ImageEncoder(scales = scales, channels = [3, 64, 64, 64, 32], kernal_sizes = 5,
@@ -150,7 +151,7 @@ class VDNet(nn.Module):
 
     def forward(self, inputs, params = ['mean', 'log_var'], sampling = 'NONE'):
         # sanity check
-        assert sampling in ['NONE'], 'unsupported sampling type "{0}"'.format(sampling)
+        assert sampling in ['NONE', 'PRIOR', 'EMPIRICAL'], 'unsupported sampling type "{0}"'.format(sampling)
 
         # inputs
         if sampling == 'NONE':
@@ -165,8 +166,8 @@ class VDNet(nn.Module):
         if sampling == 'NONE':
             z, (mean, log_var) = self.motion_encoder.forward(m_inputs)
         elif sampling == 'PRIOR':
-            size = (inputs[0].size(0), 3200)
-            z = Variable(torch.normal(torch.zeros(size), torch.ones(size)).cuda())
+            z = Variable(torch.normal(torch.zeros((inputs[0].size(0), self.z_size)),
+                                      torch.ones((inputs[0].size(0), self.z_size))).cuda())
         elif sampling == 'EMPIRICAL':
             pass
 
