@@ -141,21 +141,20 @@ if __name__ == '__main__':
                 inputs, targets = iter(loaders[split]).next()
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-                # forward (sampling & recontruction)
-                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(num_samples)]
+                # forward (recontruction & sampling)
                 outputs = model.forward(inputs, params = None)
+                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(num_samples)]
 
                 # visualize
-                samples = [visualize(inputs[0], samples[k]) for k in range(num_samples)]
                 outputs = visualize(inputs[0], outputs)
                 targets = visualize(inputs[0], targets)
+                samples = [visualize(inputs[0], samples[k]) for k in range(num_samples)]
                 inputs = visualize(inputs[0])
 
                 # image summary
                 logger.image_summary('{0}-inputs'.format(split), inputs, step)
+                logger.image_summary('{0}-outputs'.format(split), zip(inputs, outputs), step)
+                logger.image_summary('{0}-targets'.format(split), zip(inputs, targets), step)
 
                 for k in range(num_samples):
-                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), samples[k], step)
-
-                logger.image_summary('{0}-outputs'.format(split), outputs, step)
-                logger.image_summary('{0}-targets'.format(split), targets, step)
+                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, samples[k]), step)
