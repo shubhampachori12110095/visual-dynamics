@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
             # forward
             optimizer.zero_grad()
-            outputs, (mean, log_var) = model.forward(inputs)
+            outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
 
             # reconstruction & kl divergence loss
             loss_r = mse_loss(outputs, targets)
@@ -114,7 +114,7 @@ if __name__ == '__main__':
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
             # forward
-            outputs, (mean, log_var) = model.forward(inputs)
+            outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
 
             # reconstruction & kl divergence loss
             loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
@@ -140,14 +140,14 @@ if __name__ == '__main__':
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
                 # forward (recontruction & sampling)
-                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(4)]
-                outputs = model.forward(inputs, params = None)
+                samples = [model.forward(inputs, sampling = 'PRIOR') for k in range(4)]
+                outputs = model.forward(inputs)
 
                 # visualize
-                samples = [visualize(inputs[0], sample) for sample in samples]
-                outputs = visualize(inputs[0], outputs)
-                targets = visualize(inputs[0], targets)
-                inputs = visualize(inputs[0])
+                samples = [visualize(inputs, sample) for sample in samples]
+                outputs = visualize(inputs, outputs)
+                targets = visualize(inputs, targets)
+                inputs = visualize(inputs)
 
                 # image summary
                 logger.image_summary('{0}-inputs'.format(split), inputs, step)

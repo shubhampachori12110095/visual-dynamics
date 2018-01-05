@@ -5,8 +5,13 @@ from utils.torch import to_np
 
 
 def visualize(inputs, outputs = None, size = 256):
-    inputs = inputs[-1]
+    # inputs
+    if isinstance(inputs, list) and len(inputs) == 2:
+        inputs = inputs[0][-1]
+    else:
+        inputs = inputs[-1]
 
+    # outputs
     if outputs is None:
         outputs = np.zeros(inputs.size())
 

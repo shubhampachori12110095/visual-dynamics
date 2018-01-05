@@ -3,9 +3,8 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
-from utils.torch import ConvPool2D, GaussianSampler, conv_cross2d, weights_init
+from utils.torch import ConvPool2D, conv_cross2d, gaussian_sampler, to_var, weights_init
 
 
 class ImageEncoder(nn.Module):
@@ -44,9 +43,6 @@ class MotionEncoder(nn.Module):
         )
         self.encoder.apply(weights_init)
 
-        # sampler
-        self.sampler = GaussianSampler()
-
     def forward(self, inputs):
         inputs = torch.cat(inputs, 1)
 
@@ -54,12 +50,9 @@ class MotionEncoder(nn.Module):
         outputs = self.encoder.forward(inputs)
         outputs = outputs.view(inputs.size(0), -1)
 
-        # output => mean, logvar
-        params = torch.split(outputs, outputs.size(1) // 2, 1)
-
-        # mean, logvar => z
-        z = self.sampler.forward(params)
-        return z, params
+        # output => mean, log_var
+        mean, log_var = torch.split(outputs, outputs.size(1) // 2, 1)
+        return mean, log_var
 
 
 class KernelDecoder(nn.Module):
@@ -149,12 +142,12 @@ class VDNet(nn.Module):
                                             kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
-    def forward(self, inputs, params = ['mean', 'log_var'], sampling = 'NONE'):
+    def forward(self, inputs, sampling = 'NONE', params = None):
         # sanity check
         assert sampling in ['NONE', 'PRIOR', 'EMPIRICAL'], 'unsupported sampling type "{0}"'.format(sampling)
 
         # inputs
-        if sampling == 'NONE':
+        if isinstance(inputs, list) and len(inputs) == 2:
             i_inputs, m_inputs = inputs
         else:
             i_inputs = inputs
@@ -164,12 +157,16 @@ class VDNet(nn.Module):
 
         # motion encoder
         if sampling == 'NONE':
-            z, (mean, log_var) = self.motion_encoder.forward(m_inputs)
+            mean, log_var = self.motion_encoder.forward(m_inputs)
         elif sampling == 'PRIOR':
-            z = Variable(torch.normal(torch.zeros((inputs[0].size(0), self.z_size)),
-                                      torch.ones((inputs[0].size(0), self.z_size))).cuda())
+            # fixme
+            mean = log_var = to_var(torch.zeros((i_inputs[0].size(0), self.z_size)), volatile = True)
         elif sampling == 'EMPIRICAL':
-            pass
+            # fixme
+            mean = log_var = None
+
+        # sampler
+        z = gaussian_sampler(mean, log_var)
 
         # kernel decoder
         kernels = self.kernel_decoder.forward(z)

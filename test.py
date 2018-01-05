@@ -8,7 +8,7 @@ from tqdm import tqdm
 import utils
 from data import MotionDataset
 from networks import VDNet
-from utils.torch import load_snapshot, to_var
+from utils.torch import load_snapshot, to_np, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -52,9 +52,17 @@ if __name__ == '__main__':
     # testing
     model.train(False)
 
+    means, log_vars = [], []
     for inputs, targets in tqdm(loaders['test']):
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
         # forward
-        outputs, (mean, log_var) = model.forward(inputs)
-        print(mean, log_var)
+        outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+
+        means.append(to_np(mean))
+        log_vars.append(to_np(log_vars))
+
+    # means = np.concatenate(means, 0)
+    # log_vars = np.concatenate(log_vars, 0)
+
+    print(means, log_vars)
