@@ -147,9 +147,11 @@ if __name__ == '__main__':
                 outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
                 mean, log_var = to_np(mean), to_np(log_var)
 
-                if len(means) < args.size and len(log_vars) < args.size:
-                    means.extend(mean.tolist())
-                    log_vars.extend(log_var.tolist())
+                if len(means) >= args.size and len(log_vars) >= args.size:
+                    break
+
+                means.extend(mean.tolist())
+                log_vars.extend(log_var.tolist())
 
             means = np.array(means[:args.size])
             log_vars = np.array(log_vars[:args.size])

@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 import utils
 from data import MotionDataset
@@ -27,6 +26,9 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
+
+    # testing
+    parser.add_argument('--size', default = 1024, type = int)
 
     # arguments
     args = parser.parse_args()
@@ -57,20 +59,23 @@ if __name__ == '__main__':
     # testing
     model.train(False)
 
+    # means & log_vars
     means, log_vars = [], []
-    for inputs, targets in tqdm(loaders['train']):
+    for inputs, targets in loaders['train']:
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
         # forward
         outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
-
         mean, log_var = to_np(mean), to_np(log_var)
 
+        if len(means) >= args.size and len(log_vars) >= args.size:
+            break
+
         means.extend(mean.tolist())
+        log_vars.extend(log_var.tolist())
 
-        # log_vars.append(to_np(log_vars))
-
-    means = np.array(means)
+    means = np.array(means[:args.size])
+    log_vars = np.array(log_vars[:args.size])
 
     X, Y = [], []
     for i in range(means.shape[0]):
