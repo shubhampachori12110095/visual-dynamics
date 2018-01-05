@@ -2,6 +2,9 @@ from __future__ import print_function
 
 import argparse
 
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -53,16 +56,30 @@ if __name__ == '__main__':
     model.train(False)
 
     means, log_vars = [], []
-    for inputs, targets in tqdm(loaders['test']):
+    for inputs, targets in tqdm(loaders['train']):
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
         # forward
         outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
 
-        means.append(to_np(mean))
-        log_vars.append(to_np(log_vars))
+        mean, log_var = to_np(mean), to_np(log_var)
 
-    # means = np.concatenate(means, 0)
-    # log_vars = np.concatenate(log_vars, 0)
+        means.extend(mean.tolist())
 
-    print(means, log_vars)
+        # log_vars.append(to_np(log_vars))
+
+    means = np.array(means)
+
+    X, Y = [], []
+    for i in range(means.shape[0]):
+        for j in range(means.shape[1]):
+            X.append(j + 1)
+            Y.append(means[i][j])
+    sns.set()
+    sns.set_style('white')
+
+    plt.plot(X, Y)
+    # plt.imshow()
+    # plt.show()
+    # log_vars = np.stack(log_vars, 0)
+    plt.savefig('mean.png', bbox_inches = 'tight')

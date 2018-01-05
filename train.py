@@ -140,13 +140,13 @@ if __name__ == '__main__':
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
                 # forward (recontruction & sampling)
-                samples = [model.forward(inputs, sampling = 'PRIOR') for k in range(4)]
                 outputs = model.forward(inputs)
+                samples = [model.forward(inputs, sampling = 'PRIOR') for k in range(4)]
 
                 # visualize
-                samples = [visualize(inputs, sample) for sample in samples]
                 outputs = visualize(inputs, outputs)
                 targets = visualize(inputs, targets)
+                samples = [visualize(inputs, sample) for sample in samples]
                 inputs = visualize(inputs)
 
                 # image summary
