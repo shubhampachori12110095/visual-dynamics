@@ -20,6 +20,9 @@ def visualize(inputs, outputs = None, size = 256):
         # input, output => image
         image = input + output / 128.
 
+        image = np.maximum(image, 0)
+        image = np.minimum(image, 1)
+
         # resize output
         image = resize_image(image, size, channel_first = True)
         images.append(image)
