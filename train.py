@@ -5,13 +5,15 @@ import os
 
 import numpy as np
 import torch
+from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
-from utils.torch import Logger, load_snapshot, to_var
+from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -78,59 +80,59 @@ if __name__ == '__main__':
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
 
-        # # training
-        # model.train()
-        # for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0} train'.format(epoch + 1)):
-        #     inputs, targets = to_var(inputs), to_var(targets)
-        #
-        #     # forward
-        #     optimizer.zero_grad()
-        #     outputs, (mean, log_var) = model.forward(inputs)
-        #
-        #     # reconstruction & kl divergence loss
-        #     loss_r = mse_loss(outputs, targets)
-        #     loss_kl = kld_loss(mean, log_var)
-        #
-        #     # overall loss
-        #     loss = loss_r + args.weight_kl * loss_kl
-        #
-        #     # scalar summary
-        #     logger.scalar_summary('train_loss', loss.data[0], step)
-        #     logger.scalar_summary('train_loss_r', loss_r.data[0], step)
-        #     logger.scalar_summary('train_loss_kl', loss_kl.data[0], step)
-        #     step += targets.size(0)
-        #
-        #     # backward
-        #     loss.backward()
-        #     optimizer.step()
+        # training
+        model.train()
+        for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0} train'.format(epoch + 1)):
+            inputs, targets = to_var(inputs), to_var(targets)
+
+            # forward
+            optimizer.zero_grad()
+            outputs, (mean, log_var) = model.forward(inputs)
+
+            # reconstruction & kl divergence loss
+            loss_r = mse_loss(outputs, targets)
+            loss_kl = kld_loss(mean, log_var)
+
+            # overall loss
+            loss = loss_r + args.weight_kl * loss_kl
+
+            # scalar summary
+            logger.scalar_summary('train_loss', loss.data[0], step)
+            logger.scalar_summary('train_loss_r', loss_r.data[0], step)
+            logger.scalar_summary('train_loss_kl', loss_kl.data[0], step)
+            step += targets.size(0)
+
+            # backward
+            loss.backward()
+            optimizer.step()
 
         # testing
         model.train(False)
 
-        # loss_r, loss_kl = 0, 0
-        # for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0} test'.format(epoch + 1)):
-        #     inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
-        #
-        #     # forward
-        #     outputs, (mean, log_var) = model.forward(inputs)
-        #
-        #     # reconstruction & kl divergence loss
-        #     loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
-        #     loss_kl += kld_loss(mean, log_var) * targets.size(0) / len(data['test'])
-        #
-        # # scalar summary
-        # logger.scalar_summary('test_loss_r', loss_r.data[0], step)
-        # logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
-        #
-        # # adjust kl weight
-        # if args.target_loss is not None and loss_r.data[0] < args.target_loss:
-        #     if loss_kl.data[0] * args.weight_kl < loss_r.data[0] and args.weight_kl < args.max_weight:
-        #         args.weight_kl = min(args.weight_kl * 2, args.max_weight)
-        #         print('==> adjusted kl weight to {0}'.format(args.weight_kl))
-        #
+        loss_r, loss_kl = 0, 0
+        for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0} test'.format(epoch + 1)):
+            inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
+
+            # forward
+            outputs, (mean, log_var) = model.forward(inputs)
+
+            # reconstruction & kl divergence loss
+            loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
+            loss_kl += kld_loss(mean, log_var) * targets.size(0) / len(data['test'])
+
+        # scalar summary
+        logger.scalar_summary('test_loss_r', loss_r.data[0], step)
+        logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
+
+        # adjust kl weight
+        if args.target_loss is not None and loss_r.data[0] < args.target_loss:
+            if loss_kl.data[0] * args.weight_kl < loss_r.data[0] and args.weight_kl < args.max_weight:
+                args.weight_kl = min(args.weight_kl * 2, args.max_weight)
+                print('==> adjusted kl weight to {0}'.format(args.weight_kl))
+
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
-            # # save snapshot
-            # save_snapshot(exp_path, epoch + 1, model, optimizer)
+            # save snapshot
+            save_snapshot(exp_path, epoch + 1, model, optimizer)
 
             # visualization
             for split in ['train', 'test']:
@@ -138,23 +140,19 @@ if __name__ == '__main__':
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
                 # forward (recontruction & sampling)
-                # samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(4)]
+                samples = [model.forward(inputs[0], sampling = 'PRIOR') for k in range(4)]
                 outputs = model.forward(inputs, params = None)
 
                 # visualize
-                # samples = [visualize(inputs[0], sample) for sample in samples]
+                samples = [visualize(inputs[0], sample) for sample in samples]
                 outputs = visualize(inputs[0], outputs)
-                # targets = visualize(inputs[0], targets)
+                targets = visualize(inputs[0], targets)
                 inputs = visualize(inputs[0])
 
                 # image summary
                 logger.image_summary('{0}-inputs'.format(split), inputs, step)
                 logger.image_summary('{0}-outputs'.format(split), zip(inputs, outputs), step)
-                # logger.image_summary('{0}-targets'.format(split), zip(inputs, targets), step)
-                #
-                # for k, sample in enumerate(samples):
-                #     logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
+                logger.image_summary('{0}-targets'.format(split), zip(inputs, targets), step)
 
-                break
-
-        break
+                for k, sample in enumerate(samples):
+                    logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
