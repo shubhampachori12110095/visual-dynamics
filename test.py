@@ -1,0 +1,60 @@
+from __future__ import print_function
+
+import argparse
+
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+import utils
+from data import MotionDataset
+from networks import VDNet
+from utils.torch import load_snapshot, to_var
+
+if __name__ == '__main__':
+    # argument parser
+    parser = argparse.ArgumentParser()
+
+    # experiment
+    parser.add_argument('--exp', default = 'default')
+    parser.add_argument('--resume', default = None)
+
+    # dataset
+    parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
+    parser.add_argument('--workers', default = 8, type = int)
+    parser.add_argument('--batch', default = 8, type = int)
+
+    # testing
+    parser.add_argument('--gpu', default = '0')
+
+    # arguments
+    args = parser.parse_args()
+    print('==> arguments parsed')
+    for key in vars(args):
+        print('[{0}] = {1}'.format(key, getattr(args, key)))
+
+    # cuda devices
+    utils.set_cuda_devices(args.gpu)
+
+    # datasets & loaders
+    data, loaders = {}, {}
+    for split in ['train', 'test']:
+        data[split] = MotionDataset(data_path = args.data_path, split = split)
+        loaders[split] = DataLoader(data[split], batch_size = args.batch, shuffle = True, num_workers = args.workers)
+    print('==> dataset loaded')
+    print('[size] = {0} + {1}'.format(len(data['train']), len(data['test'])))
+
+    # model
+    model = VDNet().cuda()
+
+    # load snapshot
+    load_snapshot(args.resume, model = model)
+
+    # testing
+    model.train(False)
+
+    for inputs, targets in tqdm(loaders['test']):
+        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
+
+        # forward
+        outputs, (mean, log_var) = model.forward(inputs)
+        print(mean, log_var)

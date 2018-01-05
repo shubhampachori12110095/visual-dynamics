@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
-        epoch = load_snapshot(args.resume, model, optimizer)
+        epoch = load_snapshot(args.resume, model = model, optimizer = optimizer)
     else:
         epoch = 0
 
