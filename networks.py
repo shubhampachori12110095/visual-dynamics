@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils.torch import ConvPool2D, conv_cross2d, gaussian_sampler, to_var, weights_init
+from utils.torch import ConvPool2D, conv_cross2d, gaussian_sampler, weights_init
 
 
 class ImageEncoder(nn.Module):
@@ -113,12 +113,11 @@ class MotionDecoder(nn.Module):
 
 
 class VDNet(nn.Module):
-    def __init__(self, scales = [.25, .5, 1, 2], z_size = 3200):
+    def __init__(self, scales = [.25, .5, 1, 2]):
         super(VDNet, self).__init__()
 
         # settings
         self.scales = scales
-        self.z_size = z_size
 
         # image encoder
         self.image_encoder = ImageEncoder(scales = scales, channels = [3, 64, 64, 64, 32], kernal_sizes = 5,
@@ -142,28 +141,21 @@ class VDNet(nn.Module):
                                             kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
-    def forward(self, inputs, sampling = 'NONE', params = None):
-        # sanity check
-        assert sampling in ['NONE', 'PRIOR', 'EMPIRICAL'], 'unsupported sampling type "{0}"'.format(sampling)
-
+    def forward(self, inputs, mean = None, log_var = None, params = None):
         # inputs
         if isinstance(inputs, list) and len(inputs) == 2:
             i_inputs, m_inputs = inputs
         else:
-            i_inputs = inputs
+            i_inputs, m_inputs = inputs, None
 
         # image encoder
         features = self.image_encoder.forward(i_inputs)
 
         # motion encoder
-        if sampling == 'NONE':
+        if mean is None and log_var is None:
+            # fixme
+            assert m_inputs is not None
             mean, log_var = self.motion_encoder.forward(m_inputs)
-        elif sampling == 'PRIOR':
-            # fixme
-            mean = log_var = to_var(torch.zeros((i_inputs[0].size(0), self.z_size)), volatile = True)
-        elif sampling == 'EMPIRICAL':
-            # fixme
-            mean = log_var = None
 
         # sampler
         z = gaussian_sampler(mean, log_var)

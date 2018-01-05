@@ -135,13 +135,21 @@ if __name__ == '__main__':
             save_snapshot(exp_path, epoch + 1, model, optimizer)
 
             # visualization
+            num_samples = 4
+
             for split in ['train', 'test']:
                 inputs, targets = iter(loaders[split]).next()
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-                # forward (recontruction & sampling)
+                # forward (recontruction)
                 outputs = model.forward(inputs)
-                samples = [model.forward(inputs, sampling = 'PRIOR') for k in range(4)]
+
+                # forward (sampling)
+                samples = []
+                for k in range(num_samples):
+                    sample = model.forward(inputs, mean = to_var(torch.zeros((8, 3200)), volatile = True),
+                                           log_var = to_var(torch.zeros((8, 3200)), volatile = True))
+                    samples.append(sample)
 
                 # visualize
                 outputs = visualize(inputs, outputs)
