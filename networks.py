@@ -153,11 +153,9 @@ class VDNet(nn.Module):
 
         # motion encoder
         if mean is None and log_var is None:
-            # fixme
-            assert m_inputs is not None
             mean, log_var = self.motion_encoder.forward(m_inputs)
 
-        # sampler
+        # gaussian sampler
         z = gaussian_sampler(mean, log_var)
 
         # kernel decoder

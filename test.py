@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,14 +21,12 @@ if __name__ == '__main__':
     # experiment
     parser.add_argument('--exp', default = 'default')
     parser.add_argument('--resume', default = None)
+    parser.add_argument('--gpu', default = '0')
 
     # dataset
     parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
-
-    # testing
-    parser.add_argument('--gpu', default = '0')
 
     # arguments
     args = parser.parse_args()
@@ -48,6 +47,9 @@ if __name__ == '__main__':
 
     # model
     model = VDNet().cuda()
+
+    # experiment path
+    exp_path = os.path.join('exp', args.exp)
 
     # load snapshot
     load_snapshot(args.resume, model = model)

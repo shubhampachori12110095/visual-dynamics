@@ -13,7 +13,7 @@ import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
-from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_var
+from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_np, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -22,6 +22,7 @@ if __name__ == '__main__':
     # experiment
     parser.add_argument('--exp', default = 'default')
     parser.add_argument('--resume', default = None)
+    parser.add_argument('--gpu', default = '0')
 
     # dataset
     parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
@@ -30,14 +31,17 @@ if __name__ == '__main__':
 
     # optimization
     parser.add_argument('--learning_rate', default = 0.001, type = float)
-    parser.add_argument('--weight_kl', default = 0.00001, type = float)
+    parser.add_argument('--beta', default = 0.00001, type = float)
+    parser.add_argument('--max_beta', default = np.inf, type = float)
     parser.add_argument('--target_loss', default = 10., type = float)
-    parser.add_argument('--max_weight', default = np.inf, type = float)
 
     # training
     parser.add_argument('--epochs', default = 1024, type = int)
     parser.add_argument('--snapshot', default = 1, type = int)
-    parser.add_argument('--gpu', default = '0')
+
+    # testing
+    parser.add_argument('--size', default = 1024, type = int)
+    parser.add_argument('--samples', default = 4, type = int)
 
     # arguments
     args = parser.parse_args()
@@ -94,7 +98,7 @@ if __name__ == '__main__':
             loss_kl = kld_loss(mean, log_var)
 
             # overall loss
-            loss = loss_r + args.weight_kl * loss_kl
+            loss = loss_r + args.beta * loss_kl
 
             # scalar summary
             logger.scalar_summary('train_loss', loss.data[0], step)
@@ -124,19 +128,33 @@ if __name__ == '__main__':
         logger.scalar_summary('test_loss_r', loss_r.data[0], step)
         logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
 
-        # adjust kl weight
+        # adjust beta
         if args.target_loss is not None and loss_r.data[0] < args.target_loss:
-            if loss_kl.data[0] * args.weight_kl < loss_r.data[0] and args.weight_kl < args.max_weight:
-                args.weight_kl = min(args.weight_kl * 2, args.max_weight)
-                print('==> adjusted kl weight to {0}'.format(args.weight_kl))
+            if loss_kl.data[0] * args.beta < loss_r.data[0] and args.weight_kl < args.max_beta:
+                args.beta = min(args.beta * 2, args.max_beta)
+                print('==> adjusted beta to {0}'.format(args.beta))
 
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             # save snapshot
             save_snapshot(exp_path, epoch + 1, model, optimizer)
 
-            # visualization
-            num_samples = 4
+            # means & log_vars
+            means, log_vars = [], []
+            for inputs, targets in loaders['train']:
+                inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
+                # forward
+                outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+                mean, log_var = to_np(mean), to_np(log_var)
+
+                if len(means) < args.size and len(log_vars) < args.size:
+                    means.extend(mean.tolist())
+                    log_vars.extend(log_var.tolist())
+
+            means = np.array(means[:args.size])
+            log_vars = np.array(log_vars[:args.size])
+
+            # visualization
             for split in ['train', 'test']:
                 inputs, targets = iter(loaders[split]).next()
                 inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
@@ -146,9 +164,9 @@ if __name__ == '__main__':
 
                 # forward (sampling)
                 samples = []
-                for k in range(num_samples):
-                    sample = model.forward(inputs, mean = to_var(torch.zeros((8, 3200)), volatile = True),
-                                           log_var = to_var(torch.zeros((8, 3200)), volatile = True))
+                for k in range(args.samples):
+                    indices = np.random.choice(args.size, args.batch)
+                    sample = model.forward(inputs, mean = to_var(means[indices]), log_var = to_var(log_vars[indices]))
                     samples.append(sample)
 
                 # visualize
