@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 
 import utils
 from data import MotionDataset
+from misc import visualize
 from networks import VDNet
-from utils.torch import load_snapshot
+from utils.torch import load_snapshot, save_images, to_np, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -46,20 +47,20 @@ if __name__ == '__main__':
     # model
     model = VDNet().cuda()
 
-    # experiment path
-    exp_path = os.path.join('exp', args.exp)
-    utils.shell.mkdir(exp_path, clean = False)
+    # test path
+    test_path = os.path.join('exp', args.exp, 'test')
+    utils.shell.mkdir(test_path, clean = True)
 
     # load snapshot
     means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
 
     def show_dist(data, path):
-        num, dim = data.shape
+        num_dists, num_dims = data.shape
 
         x, y = [], []
-        for k in range(dim):
-            x.extend([k] * num)
+        for k in range(num_dims):
+            x.extend([k] * num_dists)
             y.extend(data[:, k])
 
         plt.figure()
@@ -67,52 +68,61 @@ if __name__ == '__main__':
         plt.savefig(path, bbox_inches = 'tight')
 
 
-    show_dist(means, 'means.png')
-    show_dist(log_vars, 'log_vars.png')
+    # show_dist(means, os.path.join(test_path, 'means.png'))
+    # show_dist(log_vars, os.path.join(test_path, 'vars.png'))
+
+    images_path = os.path.join(test_path, 'images')
+    utils.shell.mkdir(images_path, clean = True)
 
     std = np.std(means, axis = 0)
 
-    print(sorted(std)[::-1][:10])
+    indices = np.argsort(std)
 
-    # testing
+    dimensions = indices[-5:]
+    values = np.arange(-10, 11, 1)
+
+    # fixme
     model.train(False)
 
-    """
-        local selectedDimensions = {778, 2958, 2963, 2971, 3149}
-        local nsample = math.min(100, traindata_handler:getsize())
-        local zRange = torch.linspace(-10, 10, 21)
-        local totalImage = nsample * zRange:size()[1] * #selectedDimensions
-        local finished = 0
-        for zdimIndex = 1, #selectedDimensions do
-            local zdim = selectedDimensions[zdimIndex]
+    for split in ['train', 'test']:
+        inputs, targets = iter(loaders[split]).next()
+        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-            for i=1,nsample,opt.batchSize do
-                local inputs,targets = traindata_handler:getdata(batchidx)
+        # forward
+        outputs, base = model.forward(inputs, returns = ['z'])
 
-                -- Get z value
-                local z = crossconvmulti_getz(model.seqmodel, inputs)
+        for dim in dimensions:
+            code = to_np(base).copy()
 
-                -- Forward propagation
-                for zRangeIndex = 1, zRange:size(1) do
-                    z[{{},zdim}] = zRange[zRangeIndex]
-                    local outputs = crossconvmulti_sampling(model.seqmodel, z)
-                    local outim = crossconvmulti_out2im(inputs, outputs)
-                    for j=1,batchlen do
-                        local outfile = path.join(dumppath, string.format('%03d_%02d.png', i+j, zRangeIndex))
-                        image.save(outfile, outim[j])
-                        table.insert(filelist[j], outfile)
-                    end
-                end
+            samples = []
+            for val in values:
+                # forward
+                code[:, dim] = val
+                sample = model.forward(inputs, z = to_var(code, volatile = True))
 
-                for j = 1, batchlen do
-                    local gifFile = string.format('%03d.gif', i+j)
-                    table.insert(giflist, gifFile)
-                    genGIF(filelist[j], path.join(dumppath, gifFile), 10)
-                    for zRangeIndex = 1, zRange:size(1) do
-                        os.remove(filelist[j][zRangeIndex])
-                    end
-                end
-            end
-            tftools.createHTMLimages(dumppath, 'index.html', giflist, string.format('z=%d',zdim))
-        end
-    """
+                # visualize
+                sample = visualize(inputs, sample)
+                samples.append(sample)
+
+            # save
+            for k in range(args.batch):
+                images = [sample[k] for sample in samples]
+                image_path = os.path.join(images_path, '{0}-{1}-{2}.gif'.format(split, k, dim))
+                save_images(images, image_path, duration = .1, channel_first = True)
+
+    # visualization
+    with open(os.path.join(test_path, 'index.html'), 'w') as fp:
+        for dim in dimensions:
+            print('<h3>dimension [{0}]</h3>'.format(dim), file = fp)
+
+            # table
+            print('<table border="1" style="table-layout: fixed;">', file = fp)
+            for split in ['train', 'test']:
+                print('<tr>', file = fp)
+                for k in range(args.batch):
+                    image_path = os.path.join('images', '{0}-{1}-{2}.gif'.format(split, k, dim))
+                    print('<td halign="center" style="word-wrap: break-word;" valign="top">', file = fp)
+                    print('<img src="{0}" style="width:128px;">'.format(image_path), file = fp)
+                    print('</td>', file = fp)
+                print('</tr>', file = fp)
+            print('</table>', file = fp)

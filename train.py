@@ -131,7 +131,7 @@ if __name__ == '__main__':
                 print('==> adjusted beta to {0}'.format(args.beta))
 
         # means & log_vars
-        num_values = 1024
+        num_dists = 1024
 
         means, log_vars = [], []
         for inputs, targets in loaders['train']:
@@ -143,11 +143,11 @@ if __name__ == '__main__':
             means.extend(to_np(mean))
             log_vars.extend(to_np(log_var))
 
-            if len(means) >= num_values and len(log_vars) >= num_values:
+            if len(means) >= num_dists and len(log_vars) >= num_dists:
                 break
 
-        means = np.array(means[:num_values])
-        log_vars = np.array(log_vars[:num_values])
+        means = np.array(means[:num_dists])
+        log_vars = np.array(log_vars[:num_dists])
 
         # visualization
         num_samples = 4
@@ -162,7 +162,7 @@ if __name__ == '__main__':
             # forward (sampling)
             samples = []
             for k in range(num_samples):
-                indices = np.random.choice(num_values, args.batch)
+                indices = np.random.choice(num_dists, args.batch)
                 sample = model.forward(inputs, mean = to_var(means[indices]), log_var = to_var(log_vars[indices]))
                 samples.append(sample)
 
