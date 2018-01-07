@@ -6,9 +6,10 @@ from utils.image import load_image, resize_image
 
 
 class MotionDataset(Dataset):
-    def __init__(self, data_path, split, input_scales = [.25, .5, 1, 2], target_size = 64):
+    def __init__(self, data_path, split, input_size = 128, input_scales = [.25, .5, 1, 2], target_size = 64):
         # settings
         self.path = data_path
+        self.input_size = input_size
         self.input_scales = input_scales
         self.target_size = target_size
 
@@ -17,15 +18,15 @@ class MotionDataset(Dataset):
 
     def __getitem__(self, index):
         # motion inputs
-        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(self.data[index])), channel_first = True)
-        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(self.data[index])), channel_first = True)
+        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(self.data[index])),
+                        size = self.input_size, channel_first = True)
+        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(self.data[index])),
+                        size = self.input_size, channel_first = True)
         m_inputs = (m1, m2)
 
         # image inputs
-        i_inputs = []
-        for input_scale in self.input_scales:
-            i = resize_image(m1, size = int(m1.shape[-1] * input_scale), channel_first = True)
-            i_inputs.append(i)
+        i_inputs = [resize_image(m1, size = int(self.input_size * input_scale), channel_first = True)
+                    for input_scale in self.input_scales]
 
         # inputs & targets
         inputs = (i_inputs, m_inputs)

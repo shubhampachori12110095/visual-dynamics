@@ -15,6 +15,7 @@ def visualize(inputs, outputs = None, size = 256):
     if outputs is None:
         outputs = np.zeros(inputs.size())
 
+    # inputs, outputs => images
     images = []
     for k, (input, output) in enumerate(zip(inputs, outputs)):
         input, output = to_np(input), to_np(output)
