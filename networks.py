@@ -141,7 +141,7 @@ class VDNet(nn.Module):
                                             kernal_sizes = [9, 1, 1], batch_norm = True, nonlinear_type = 'RELU',
                                             sampling_type = 'NONE', sampling_sizes = 1)
 
-    def forward(self, inputs, mean = None, log_var = None, params = None):
+    def forward(self, inputs, mean = None, log_var = None, returns = None):
         # inputs
         if isinstance(inputs, list) and len(inputs) == 2:
             i_inputs, m_inputs = inputs
@@ -175,14 +175,11 @@ class VDNet(nn.Module):
         # motion decoder
         outputs = self.motion_decoder.forward(features)
 
-        # params
-        if params is not None:
+        # returns
+        if returns is not None:
             values = []
-            for p in params:
-                if p in locals():
-                    values.append(locals()[p])
-
-            if len(values) > 0:
-                return outputs, values
+            for k in returns:
+                values.append(locals()[k])
+            return outputs, values
 
         return outputs

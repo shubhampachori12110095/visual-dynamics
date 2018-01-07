@@ -77,9 +77,8 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
-        epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer)
-        epoch = load_snapshot(args.resume, model = model, optimizer = optimizer)
-        print('==> snapshot "{0}" loaded (epoch {1})'.format(args.resume, epoch))
+        epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
+        print('==> snapshot "{0}" loaded (epoch {1}, beta {2})'.format(args.resume, epoch, args.beta))
     else:
         epoch = 0
 
@@ -95,7 +94,7 @@ if __name__ == '__main__':
 
             # forward
             optimizer.zero_grad()
-            outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+            outputs, (mean, log_var) = model.forward(inputs, returns = ['mean', 'log_var'])
 
             # reconstruction & kl divergence loss
             loss_r = mse_loss(outputs, targets)
@@ -122,7 +121,7 @@ if __name__ == '__main__':
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
             # forward
-            outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+            outputs, (mean, log_var) = model.forward(inputs, returns = ['mean', 'log_var'])
 
             # reconstruction & kl divergence loss
             loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
@@ -143,7 +142,7 @@ if __name__ == '__main__':
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
             # forward
-            outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+            outputs, (mean, log_var) = model.forward(inputs, returns = ['mean', 'log_var'])
 
             means.extend(to_np(mean))
             log_vars.extend(to_np(log_var))
@@ -184,13 +183,11 @@ if __name__ == '__main__':
                 logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
 
         # snapshot
+        save_snapshot(os.path.join(exp_path, 'latest.pth'),
+                      model = model, optimizer = optimizer, epoch = epoch + 1,
+                      beta = args.beta, means = means, log_vars = log_vars)
+
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             save_snapshot(os.path.join(exp_path, 'epoch-{0}.pth'.format(epoch + 1)),
-                          model = model, optimizer = optimizer,
-                          epoch = epoch + 1, beta = args.beta,
-                          means = means, log_vars = log_vars)
-
-        save_snapshot(os.path.join(exp_path, 'latest.pth'),
-                      model = model, optimizer = optimizer,
-                      epoch = epoch + 1, beta = args.beta,
-                      means = means, log_vars = log_vars)
+                          model = model, optimizer = optimizer, epoch = epoch + 1,
+                          beta = args.beta, means = means, log_vars = log_vars)

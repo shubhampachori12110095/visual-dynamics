@@ -65,7 +65,7 @@ if __name__ == '__main__':
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
         # forward
-        outputs, (mean, log_var) = model.forward(inputs, params = ['mean', 'log_var'])
+        outputs, (mean, log_var) = model.forward(inputs, returns = ['mean', 'log_var'])
         mean, log_var = to_np(mean), to_np(log_var)
 
         if len(means) >= args.size and len(log_vars) >= args.size:
