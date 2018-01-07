@@ -77,6 +77,7 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
+        epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer)
         epoch = load_snapshot(args.resume, model = model, optimizer = optimizer)
         print('==> snapshot "{0}" loaded (epoch {1})'.format(args.resume, epoch))
     else:
@@ -132,7 +133,7 @@ if __name__ == '__main__':
 
         # beta
         if args.target_loss is not None and loss_r.data[0] < args.target_loss:
-            if loss_kl.data[0] * args.beta < loss_r.data[0] and args.weight_kl < args.max_beta:
+            if loss_kl.data[0] * args.beta < loss_r.data[0] and args.beta < args.max_beta:
                 args.beta = min(args.beta * 2, args.max_beta)
                 print('==> adjusted beta to {0}'.format(args.beta))
 
@@ -183,13 +184,13 @@ if __name__ == '__main__':
                 logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
 
         # snapshot
-        save_snapshot(os.path.join(exp_path, 'latest.pth'),
-                      epoch + 1, model = model, optimizer = optimizer,
-                      beta = args.beta, z = (means, log_vars))
-        print('==> saved snapshot to "{0}"'.format(exp_path))
-
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
             save_snapshot(os.path.join(exp_path, 'epoch-{0}.pth'.format(epoch + 1)),
-                          epoch + 1, model = model, optimizer = optimizer,
-                          beta = args.beta, z = (means, log_vars))
-            print('==> saved snapshot to "{0}"'.format(exp_path))
+                          model = model, optimizer = optimizer,
+                          epoch = epoch + 1, beta = args.beta,
+                          means = means, log_vars = log_vars)
+
+        save_snapshot(os.path.join(exp_path, 'latest.pth'),
+                      model = model, optimizer = optimizer,
+                      epoch = epoch + 1, beta = args.beta,
+                      means = means, log_vars = log_vars)
