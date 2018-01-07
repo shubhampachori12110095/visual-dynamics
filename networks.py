@@ -16,7 +16,7 @@ class ImageEncoder(nn.Module):
         for k in range(num_scales):
             self.encoders.append(ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
                                             sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes))
-            self.add_module('encoders-{0}'.format(k + 1), self.encoders[-1])
+            self.add_module('encoder-{0}'.format(k + 1), self.encoders[-1])
 
     def forward(self, inputs):
         outputs = [encoder.forward(input) for encoder, input in zip(self.encoders, inputs)]
@@ -129,7 +129,7 @@ class VDNet(nn.Module):
 
         # kernel decoder
         self.kernel_decoder = KernelDecoder(num_scales = len(scales),
-                                            in_channels = 32, out_channels = 32, kernel_size = 5, num_groups = 32,
+                                            in_channels = 32, out_channels = 32, num_groups = 32, kernel_size = 5,
                                             num_layers = 2, kernel_sizes = 5)
 
         # motion decoder
@@ -137,7 +137,7 @@ class VDNet(nn.Module):
                                             channels = [len(scales) * 32, 128, 128, 3],
                                             kernal_sizes = [9, 1, 1])
 
-    def forward(self, inputs, mean = None, log_var = None, returns = None):
+    def forward(self, inputs, mean = None, log_var = None, z = None, returns = None):
         # inputs
         if isinstance(inputs, list) and len(inputs) == 2:
             i_inputs, m_inputs = inputs
@@ -148,11 +148,12 @@ class VDNet(nn.Module):
         features = self.image_encoder.forward(i_inputs)
 
         # motion encoder
-        if mean is None and log_var is None:
+        if mean is None and log_var is None and z is None:
             mean, log_var = self.motion_encoder.forward(m_inputs)
 
         # gaussian sampler
-        z = gaussian_sampler(mean, log_var)
+        if z is None:
+            z = gaussian_sampler(mean, log_var)
 
         # kernel decoder
         kernels = self.kernel_decoder.forward(z)

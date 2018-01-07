@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
 
-    # hyperparams
+    # hyper-params
     parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--beta', default = 0.00001, type = float)
     parser.add_argument('--max_beta', default = np.inf, type = float)
@@ -61,7 +61,6 @@ if __name__ == '__main__':
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)
-    print('==> optimizer loaded')
 
     # experiment path
     exp_path = os.path.join('exp', args.exp)
@@ -69,7 +68,6 @@ if __name__ == '__main__':
 
     # logger
     logger = Logger(exp_path)
-    print('==> save logs to {0}'.format(exp_path))
 
     # load snapshot
     if args.resume is not None:
@@ -78,6 +76,7 @@ if __name__ == '__main__':
     else:
         epoch = 0
 
+    # iterations
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
         print('==> epoch {0} (starting from step {1})'.format(epoch, step))
@@ -132,7 +131,7 @@ if __name__ == '__main__':
                 print('==> adjusted beta to {0}'.format(args.beta))
 
         # means & log_vars
-        num_codes = 1024
+        num_values = 1024
 
         means, log_vars = [], []
         for inputs, targets in loaders['train']:
@@ -144,11 +143,11 @@ if __name__ == '__main__':
             means.extend(to_np(mean))
             log_vars.extend(to_np(log_var))
 
-            if len(means) >= num_codes and len(log_vars) >= num_codes:
+            if len(means) >= num_values and len(log_vars) >= num_values:
                 break
 
-        means = np.array(means[:num_codes])
-        log_vars = np.array(log_vars[:num_codes])
+        means = np.array(means[:num_values])
+        log_vars = np.array(log_vars[:num_values])
 
         # visualization
         num_samples = 4
@@ -163,7 +162,7 @@ if __name__ == '__main__':
             # forward (sampling)
             samples = []
             for k in range(num_samples):
-                indices = np.random.choice(num_codes, args.batch)
+                indices = np.random.choice(num_values, args.batch)
                 sample = model.forward(inputs, mean = to_var(means[indices]), log_var = to_var(log_vars[indices]))
                 samples.append(sample)
 
