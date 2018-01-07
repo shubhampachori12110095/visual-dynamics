@@ -4,14 +4,13 @@ import argparse
 import os
 
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 from torch.utils.data import DataLoader
 
 import utils
 from data import MotionDataset
 from networks import VDNet
-from utils.torch import load_snapshot, to_np, to_var
+from utils.torch import load_snapshot
 
 if __name__ == '__main__':
     # argument parser
@@ -52,30 +51,13 @@ if __name__ == '__main__':
 
     # experiment path
     exp_path = os.path.join('exp', args.exp)
+    utils.shell.mkdir(exp_path, clean = False)
 
     # load snapshot
-    load_snapshot(args.resume, model = model)
+    means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
     # testing
     model.train(False)
-
-    # means & log_vars
-    means, log_vars = [], []
-    for inputs, targets in loaders['train']:
-        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
-
-        # forward
-        outputs, (mean, log_var) = model.forward(inputs, returns = ['mean', 'log_var'])
-        mean, log_var = to_np(mean), to_np(log_var)
-
-        if len(means) >= args.size and len(log_vars) >= args.size:
-            break
-
-        means.extend(mean.tolist())
-        log_vars.extend(log_var.tolist())
-
-    means = np.array(means[:args.size])
-    log_vars = np.array(log_vars[:args.size])
 
     X, Y = [], []
     for i in range(means.shape[0]):
