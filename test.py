@@ -81,11 +81,15 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(images_path, 'vars.png'), bbox_inches = 'tight')
 
     # dimensions
-    std = np.std(means, axis = 0)
-    indices = np.argsort(std)
+    bound, step = 8., .5
+    values = np.arange(-bound, bound + step, step)
 
-    dimensions = indices[-5:]
-    values = np.arange(-10, 11, 1)
+    threshold = .1
+    deviation = np.std(means, axis = 0)
+    indices = np.argsort(-deviation)
+
+    dimensions = indices[np.where(deviation[indices] > threshold)[0]]
+    print('==> dominated dimensions = {0}'.format(dimensions.tolist()))
 
     for split in ['train', 'test']:
         inputs, targets = iter(loaders[split]).next()
@@ -113,14 +117,14 @@ if __name__ == '__main__':
 
     # visualization
     with open(os.path.join(test_path, 'index.html'), 'w') as fp:
-        print('<h3>statistics</h3>'.format(dim), file = fp)
+        # statistics
+        print('<h3>statistics</h3>', file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'means.png')), file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'vars.png')), file = fp)
 
+        # dimensions
         for dim in dimensions:
             print('<h3>dimension [{0}]</h3>'.format(dim), file = fp)
-
-            # table
             print('<table border="1" style="table-layout: fixed;">', file = fp)
             for split in ['train', 'test']:
                 print('<tr>', file = fp)
