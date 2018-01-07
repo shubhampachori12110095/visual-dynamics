@@ -32,16 +32,16 @@ if __name__ == '__main__':
     # optimization
     parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--beta', default = 0.00001, type = float)
-    # parser.add_argument('--max_beta', default = np.inf, type = float)
-    # parser.add_argument('--target_loss', default = 10., type = float)
+    parser.add_argument('--max_beta', default = np.inf, type = float)
+    parser.add_argument('--target_loss', default = 10., type = float)
 
     # training
     parser.add_argument('--epochs', default = 1024, type = int)
-    parser.add_argument('--snapshot', default = 1, type = int)
+    parser.add_argument('--snapshot', default = 16, type = int)
 
     # testing
     parser.add_argument('--size', default = 1024, type = int)
-    # parser.add_argument('--samples', default = 4, type = int)
+    parser.add_argument('--samples', default = 4, type = int)
 
     # arguments
     args = parser.parse_args()
@@ -104,9 +104,9 @@ if __name__ == '__main__':
             loss = loss_r + args.beta * loss_kl
 
             # scalar summary
-            logger.scalar_summary('train_loss', loss.data[0], step)
-            logger.scalar_summary('train_loss_r', loss_r.data[0], step)
-            logger.scalar_summary('train_loss_kl', loss_kl.data[0], step)
+            logger.scalar_summary('train-loss', loss.data[0], step)
+            logger.scalar_summary('train-loss-r', loss_r.data[0], step)
+            logger.scalar_summary('train-loss-kl', loss_kl.data[0], step)
             step += targets.size(0)
 
             # backward
@@ -127,8 +127,8 @@ if __name__ == '__main__':
             loss_r += mse_loss(outputs, targets) * targets.size(0) / len(data['test'])
             loss_kl += kld_loss(mean, log_var) * targets.size(0) / len(data['test'])
 
-        logger.scalar_summary('test_loss_r', loss_r.data[0], step)
-        logger.scalar_summary('test_loss_kl', loss_kl.data[0], step)
+        logger.scalar_summary('test-loss-r', loss_r.data[0], step)
+        logger.scalar_summary('test-loss-kl', loss_kl.data[0], step)
 
         # beta
         if args.target_loss is not None and loss_r.data[0] < args.target_loss:
@@ -183,11 +183,13 @@ if __name__ == '__main__':
                 logger.image_summary('{0}-samples-{1}'.format(split, k + 1), zip(inputs, sample), step)
 
         # snapshot
-        save_snapshot(os.path.join(exp_path), epoch + 1, model = model, optimizer = optimizer,
+        save_snapshot(os.path.join(exp_path, 'latest.pth'),
+                      epoch + 1, model = model, optimizer = optimizer,
                       beta = args.beta, z = (means, log_vars))
         print('==> saved snapshot to "{0}"'.format(exp_path))
 
         if args.snapshot != 0 and (epoch + 1) % args.snapshot == 0:
-            save_snapshot(os.path.join(exp_path), epoch + 1, model = model, optimizer = optimizer,
+            save_snapshot(os.path.join(exp_path, 'epoch-{0}.pth'.format(epoch + 1)),
+                          epoch + 1, model = model, optimizer = optimizer,
                           beta = args.beta, z = (means, log_vars))
             print('==> saved snapshot to "{0}"'.format(exp_path))
