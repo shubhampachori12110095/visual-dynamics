@@ -26,9 +26,6 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
 
-    # testing
-    parser.add_argument('--size', default = 1024, type = int)
-
     # arguments
     args = parser.parse_args()
     print('==> arguments parsed')
@@ -68,7 +65,4 @@ if __name__ == '__main__':
     sns.set_style('white')
 
     plt.plot(X, Y)
-    # plt.imshow()
-    # plt.show()
-    # log_vars = np.stack(log_vars, 0)
     plt.savefig('mean.png', bbox_inches = 'tight')

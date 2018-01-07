@@ -36,8 +36,8 @@ if __name__ == '__main__':
     parser.add_argument('--target_loss', default = 10., type = float)
 
     # training
-    parser.add_argument('--epochs', default = 1024, type = int)
-    parser.add_argument('--snapshot', default = 16, type = int)
+    parser.add_argument('--epochs', default = 512, type = int)
+    parser.add_argument('--snapshot', default = 8, type = int)
 
     # arguments
     args = parser.parse_args()
