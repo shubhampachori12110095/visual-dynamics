@@ -73,21 +73,18 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
-        # epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
-        epoch = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch'])
+        epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
         print('==> snapshot "{0}" loaded (with beta = {1})'.format(args.resume, args.beta))
     else:
         epoch = 0
 
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
-        print('==> epoch {0} (starting with step {1})'.format(epoch, step))
+        print('==> epoch {0} (starting from step {1})'.format(epoch, step))
 
         # training
         model.train()
         for inputs, targets in tqdm(loaders['train'], desc = 'train'):
-            break
-
             inputs, targets = to_var(inputs), to_var(targets)
 
             # forward
