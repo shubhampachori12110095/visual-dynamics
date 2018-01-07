@@ -77,17 +77,19 @@ if __name__ == '__main__':
 
     # load snapshot
     if args.resume is not None:
-        epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
+        # epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
+        epoch = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch'])
         print('==> snapshot "{0}" loaded (epoch {1}, beta {2})'.format(args.resume, epoch, args.beta))
     else:
         epoch = 0
 
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
+        print('==> epoch {0} (starting with step {1})'.format(epoch, step))
 
         # training
         model.train()
-        for inputs, targets in tqdm(loaders['train'], desc = 'epoch {0} train'.format(epoch + 1)):
+        for inputs, targets in tqdm(loaders['train'], desc = 'train'):
             break
 
             inputs, targets = to_var(inputs), to_var(targets)
@@ -103,7 +105,7 @@ if __name__ == '__main__':
             # overall loss
             loss = loss_r + args.beta * loss_kl
 
-            # scalar summary
+            # logger
             logger.scalar_summary('train-loss', loss.data[0], step)
             logger.scalar_summary('train-loss-r', loss_r.data[0], step)
             logger.scalar_summary('train-loss-kl', loss_kl.data[0], step)
@@ -117,7 +119,7 @@ if __name__ == '__main__':
         model.train(False)
 
         loss_r, loss_kl = 0, 0
-        for inputs, targets in tqdm(loaders['test'], desc = 'epoch {0} test'.format(epoch + 1)):
+        for inputs, targets in tqdm(loaders['test'], desc = 'test'):
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
             # forward
@@ -174,7 +176,7 @@ if __name__ == '__main__':
             samples = [visualize(inputs, sample) for sample in samples]
             inputs = visualize(inputs)
 
-            # image summary
+            # logger
             logger.image_summary('{0}-inputs'.format(split), inputs, step)
             logger.image_summary('{0}-outputs'.format(split), zip(inputs, outputs), step)
             logger.image_summary('{0}-targets'.format(split), zip(inputs, targets), step)

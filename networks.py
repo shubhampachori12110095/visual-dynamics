@@ -177,9 +177,8 @@ class VDNet(nn.Module):
 
         # returns
         if returns is not None:
-            values = []
-            for k in returns:
-                values.append(locals()[k])
-            return outputs, values
+            for k, p in enumerate(returns):
+                returns[k] = locals()[p]
+            return outputs, returns[0] if len(returns) == 1 else returns
 
         return outputs
