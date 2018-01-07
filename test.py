@@ -46,65 +46,66 @@ if __name__ == '__main__':
 
     # model
     model = VDNet().cuda()
+    model.train(False)
 
     # test path
     test_path = os.path.join('exp', args.exp, 'test')
     utils.shell.mkdir(test_path, clean = True)
 
-    # load snapshot
-    means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
-
-
-    def show_dist(data, path):
-        num_dists, num_dims = data.shape
-
-        x, y = [], []
-        for k in range(num_dims):
-            x.extend([k] * num_dists)
-            y.extend(data[:, k])
-
-        plt.figure()
-        plt.plot(x, y)
-        plt.savefig(path, bbox_inches = 'tight')
-
-
-    # show_dist(means, os.path.join(test_path, 'means.png'))
-    # show_dist(log_vars, os.path.join(test_path, 'vars.png'))
-
+    # images path
     images_path = os.path.join(test_path, 'images')
     utils.shell.mkdir(images_path, clean = True)
 
-    std = np.std(means, axis = 0)
+    # load snapshot
+    means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
+    # statistics
+    num_dists, num_dims = means.shape
+
+    x, ym, yv = [], [], []
+    for k in range(num_dims):
+        x.extend([k] * num_dists)
+        ym.extend(means[:, k])
+        yv.extend(log_vars[:, k])
+
+    plt.figure()
+    plt.plot(x, ym, color = 'b')
+    plt.xlabel('dimension')
+    plt.ylabel('mean')
+    plt.savefig(os.path.join(images_path, 'means.png'), bbox_inches = 'tight')
+
+    plt.figure()
+    plt.plot(x, yv, color = 'b')
+    plt.xlabel('dimension')
+    plt.ylabel('log(var)')
+    plt.savefig(os.path.join(images_path, 'vars.png'), bbox_inches = 'tight')
+
+    # dimensions
+    std = np.std(means, axis = 0)
     indices = np.argsort(std)
 
     dimensions = indices[-5:]
     values = np.arange(-10, 11, 1)
 
-    # fixme
-    model.train(False)
-
     for split in ['train', 'test']:
         inputs, targets = iter(loaders[split]).next()
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-        # forward
+        # base
         outputs, base = model.forward(inputs, returns = ['z'])
 
         for dim in dimensions:
+            # code
             code = to_np(base).copy()
 
+            # forward
             samples = []
             for val in values:
-                # forward
                 code[:, dim] = val
                 sample = model.forward(inputs, z = to_var(code, volatile = True))
+                samples.append(visualize(inputs, sample))
 
-                # visualize
-                sample = visualize(inputs, sample)
-                samples.append(sample)
-
-            # save
+            # save images
             for k in range(args.batch):
                 images = [sample[k] for sample in samples]
                 image_path = os.path.join(images_path, '{0}-{1}-{2}.gif'.format(split, k, dim))
@@ -112,6 +113,10 @@ if __name__ == '__main__':
 
     # visualization
     with open(os.path.join(test_path, 'index.html'), 'w') as fp:
+        print('<h3>statistics</h3>'.format(dim), file = fp)
+        print('<img src="{0}">'.format(os.path.join('images', 'means.png')), file = fp)
+        print('<img src="{0}">'.format(os.path.join('images', 'vars.png')), file = fp)
+
         for dim in dimensions:
             print('<h3>dimension [{0}]</h3>'.format(dim), file = fp)
 
