@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
 
-    # optimization
+    # hyperparams
     parser.add_argument('--learning_rate', default = 0.001, type = float)
     parser.add_argument('--beta', default = 0.00001, type = float)
     parser.add_argument('--max_beta', default = np.inf, type = float)
@@ -38,10 +38,6 @@ if __name__ == '__main__':
     # training
     parser.add_argument('--epochs', default = 1024, type = int)
     parser.add_argument('--snapshot', default = 16, type = int)
-
-    # testing
-    parser.add_argument('--size', default = 1024, type = int)
-    parser.add_argument('--samples', default = 4, type = int)
 
     # arguments
     args = parser.parse_args()
@@ -79,7 +75,7 @@ if __name__ == '__main__':
     if args.resume is not None:
         # epoch, args.beta = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch', 'beta'])
         epoch = load_snapshot(args.resume, model = model, optimizer = optimizer, returns = ['epoch'])
-        print('==> snapshot "{0}" loaded (epoch {1}, beta {2})'.format(args.resume, epoch, args.beta))
+        print('==> snapshot "{0}" loaded (with beta = {1})'.format(args.resume, args.beta))
     else:
         epoch = 0
 
@@ -139,6 +135,8 @@ if __name__ == '__main__':
                 print('==> adjusted beta to {0}'.format(args.beta))
 
         # means & log_vars
+        num_codes = 1024
+
         means, log_vars = [], []
         for inputs, targets in loaders['train']:
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
@@ -149,13 +147,15 @@ if __name__ == '__main__':
             means.extend(to_np(mean))
             log_vars.extend(to_np(log_var))
 
-            if len(means) >= args.size and len(log_vars) >= args.size:
+            if len(means) >= num_codes and len(log_vars) >= num_codes:
                 break
 
-        means = np.array(means[:args.size])
-        log_vars = np.array(log_vars[:args.size])
+        means = np.array(means[:num_codes])
+        log_vars = np.array(log_vars[:num_codes])
 
         # visualization
+        num_samples = 4
+
         for split in ['train', 'test']:
             inputs, targets = iter(loaders[split]).next()
             inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
@@ -165,8 +165,8 @@ if __name__ == '__main__':
 
             # forward (sampling)
             samples = []
-            for k in range(args.samples):
-                indices = np.random.choice(args.size, args.batch)
+            for k in range(num_samples):
+                indices = np.random.choice(num_codes, args.batch)
                 sample = model.forward(inputs, mean = to_var(means[indices]), log_var = to_var(log_vars[indices]))
                 samples.append(sample)
 
