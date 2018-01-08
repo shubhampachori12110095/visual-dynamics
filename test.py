@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('--data_path', default = None)
     parser.add_argument('--workers', default = 8, type = int)
-    parser.add_argument('--batch', default = 16, type = int)
+    parser.add_argument('--batch', default = 32, type = int)
 
     # arguments
     args = parser.parse_args()

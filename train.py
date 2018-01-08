@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('--data_path', default = None)
     parser.add_argument('--workers', default = 8, type = int)
-    parser.add_argument('--batch', default = 16, type = int)
+    parser.add_argument('--batch', default = 32, type = int)
 
     # adaptive beta
     parser.add_argument('--beta', default = 0.00001, type = float)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # training
     parser.add_argument('--epochs', default = 256, type = int)
     parser.add_argument('--snapshot', default = 8, type = int)
-    parser.add_argument('--learning_rate', default = 0.01, type = float)
+    parser.add_argument('--learning_rate', default = 0.001, type = float)
 
     # arguments
     args = parser.parse_args()
