@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # iterations
     for epoch in range(epoch, args.epochs):
         step = epoch * len(data['train'])
-        print('==> epoch {0} (starting from step {1})'.format(epoch, step))
+        print('==> epoch {0} (starting from step {1})'.format(epoch + 1, step + 1))
 
         # training
         model.train()
