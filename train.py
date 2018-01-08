@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default = '0')
 
     # dataset
-    parser.add_argument('--data_path', default = '/data/vision/billf/motionTransfer/data/toy/3Shapes2_large/')
+    parser.add_argument('--data_path', default = None)
     parser.add_argument('--workers', default = 8, type = int)
     parser.add_argument('--batch', default = 8, type = int)
 
