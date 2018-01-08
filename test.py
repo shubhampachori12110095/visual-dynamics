@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 import utils
 from data import MotionDataset
@@ -88,7 +89,8 @@ if __name__ == '__main__':
     deviation = np.std(means, axis = 0)
     indices = np.argsort(-deviation)
 
-    dimensions = indices[np.where(deviation[indices] > threshold)[0]]
+    num_dims = 16
+    dimensions = indices[np.where(deviation[indices] > threshold)[0]][:num_dims]
     print('==> dominated dimensions = {0}'.format(dimensions.tolist()))
 
     for split in ['train', 'test']:
@@ -98,7 +100,7 @@ if __name__ == '__main__':
         # base
         outputs, base = model.forward(inputs, returns = ['z'])
 
-        for dim in dimensions:
+        for dim in tqdm(dimensions):
             # code
             code = to_np(base).copy()
 

@@ -27,16 +27,20 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('--data_path', default = None)
     parser.add_argument('--workers', default = 8, type = int)
-    parser.add_argument('--batch', default = 8, type = int)
+    parser.add_argument('--batch', default = 16, type = int)
 
-    # hyper-params
-    parser.add_argument('--learning_rate', default = 0.001, type = float)
+    # optimization
+    parser.add_argument('--learning_rate', default = 0.01, type = float)
+    parser.add_argument('--momentum', default = 0.9, type = float)
+    parser.add_argument('--weight_decay', default = 0, type = float)
+
+    # adaptive beta
     parser.add_argument('--beta', default = 0.00001, type = float)
     parser.add_argument('--max_beta', default = np.inf, type = float)
-    parser.add_argument('--target_loss', default = 10., type = float)
+    parser.add_argument('--target_loss', default = 10, type = float)
 
     # training
-    parser.add_argument('--epochs', default = 512, type = int)
+    parser.add_argument('--epochs', default = 256, type = int)
     parser.add_argument('--snapshot', default = 8, type = int)
 
     # arguments
@@ -60,7 +64,8 @@ if __name__ == '__main__':
     model = VDNet().cuda()
 
     # optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr = args.learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), lr = args.learning_rate,
+                                momentum = args.momentum, weight_decay = args.weight_decay)
 
     # experiment path
     exp_path = os.path.join('exp', args.exp)
