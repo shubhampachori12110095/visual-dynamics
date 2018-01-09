@@ -82,16 +82,31 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(images_path, 'vars.png'), bbox_inches = 'tight')
 
     # dimensions
-    bound, step = 8., .5
+    bound, step = 8., .2
     values = np.arange(-bound, bound + step, step)
 
-    threshold = .1
-    deviation = np.std(means, axis = 0)
-    indices = np.argsort(-deviation)
+    threshold = .5
+    magnitudes = np.max(np.abs(means), axis = 0)
+    indices = np.argsort(-magnitudes)
 
-    num_dims = 16
-    dimensions = indices[np.where(deviation[indices] > threshold)[0]][:num_dims]
-    print('==> dominated dimensions = {0}'.format(dimensions.tolist()))
+    dimensions, exclusions = [], set()
+    for k in indices:
+        if magnitudes[k] > threshold and k not in exclusions:
+            dimensions.append(k)
+
+            for i in range(k)[::-1]:
+                if magnitudes[i] > threshold:
+                    exclusions.add(i)
+                else:
+                    break
+
+            for i in range(k, num_dims):
+                if magnitudes[i] > threshold:
+                    exclusions.add(i)
+                else:
+                    break
+
+    print('==> dominated dimensions = {0}'.format(dimensions))
 
     for split in ['train', 'test']:
         inputs, targets = iter(loaders[split]).next()
