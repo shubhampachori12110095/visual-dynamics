@@ -106,6 +106,8 @@ if __name__ == '__main__':
                 else:
                     break
 
+    num_dims = 16
+    dimensions = dimensions[:num_dims]
     print('==> dominated dimensions = {0}'.format(dimensions))
 
     for split in ['train', 'test']:
