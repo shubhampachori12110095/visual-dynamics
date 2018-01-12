@@ -30,7 +30,6 @@ class MotionEncoder(nn.Module):
         # encoder
         self.encoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
                                   sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes)
-        self.encoder.apply(weights_init)
 
     def forward(self, inputs):
         # inputs
@@ -95,11 +94,9 @@ class MotionDecoder(nn.Module):
         self.decoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes)
 
     def forward(self, inputs):
+        # upsample
         for k, input in enumerate(inputs):
-            # scaling factor
             scale_factor = int(self.scales[-1] / self.scales[k])
-
-            # upsample
             if scale_factor != 1:
                 inputs[k] = F.upsample(input, scale_factor = scale_factor, mode = 'nearest')
 
