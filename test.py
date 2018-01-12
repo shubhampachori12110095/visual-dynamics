@@ -12,7 +12,8 @@ import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
-from utils.torch import load_snapshot, save_images, to_np, to_var
+from utils.image import resize_image, save_images
+from utils.torch import load_snapshot, to_np, to_var
 
 if __name__ == '__main__':
     # argument parser
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('--data_path', default = None)
     parser.add_argument('--workers', default = 8, type = int)
-    parser.add_argument('--batch', default = 32, type = int)
+    parser.add_argument('--batch', default = 8, type = int)
 
     # arguments
     args = parser.parse_args()
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     model = VDNet().cuda()
     model.train(False)
 
-    # test path
+    # repr path
     repr_path = os.path.join('exp', args.exp, 'repr')
     utils.shell.mkdir(repr_path, clean = True)
 
@@ -59,6 +60,8 @@ if __name__ == '__main__':
 
     # load snapshot
     means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
+
+    print('==> analysis representations')
 
     # statistics
     num_dists, num_dims = means.shape
@@ -154,3 +157,51 @@ if __name__ == '__main__':
                     print('</td>', file = fp)
                 print('</tr>', file = fp)
             print('</table>', file = fp)
+
+    print('==> analysis feature map')
+
+    # fmap path
+    fmap_path = os.path.join('exp', args.exp, 'fmap')
+    utils.shell.mkdir(fmap_path, clean = True)
+
+    # images path
+    images_path = os.path.join(fmap_path, 'images')
+    utils.shell.mkdir(images_path, clean = True)
+
+    for split in ['train', 'test']:
+        inputs, targets = iter(loaders[split]).next()
+        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
+
+        # base
+        outputs, features = model.forward(inputs, returns = ['features'])
+
+        for k, (input, feature) in enumerate(zip(inputs[0], features)):
+            for i in range(32):
+                for b in range(args.batch):
+                    img, fmap = to_np(input[b]), to_np(feature[b, i])
+
+                    if np.min(fmap) < np.max(fmap):
+                        fmap = (fmap - np.min(fmap)) / (np.max(fmap) - np.min(fmap))
+
+                    img = resize_image(img, 256, channel_first = True)
+                    fmap = resize_image(fmap, 256, channel_first = True)
+
+                    save_images([img, fmap],
+                                os.path.join(images_path, '{0}-{1}-{2}-{3}.gif'.format(split, k, i, b)),
+                                channel_first = True)
+
+    # visualization
+    with open(os.path.join(fmap_path, 'index.html'), 'w') as fp:
+        for k in range(4):
+            for i in range(32):
+                print('<h3>f [{0}-{1}]</h3>'.format(k + 1, k + 1), file = fp)
+                print('<table border="1" style="table-layout: fixed;">', file = fp)
+                for split in ['train', 'test']:
+                    print('<tr>', file = fp)
+                    for b in range(args.batch):
+                        image_path = os.path.join('images', '{0}-{1}-{2}-{3}.gif'.format(split, k, i, b))
+                        print('<td halign="center" style="word-wrap: break-word;" valign="top">', file = fp)
+                        print('<img src="{0}" style="width:128px;">'.format(image_path), file = fp)
+                        print('</td>', file = fp)
+                    print('</tr>', file = fp)
+                print('</table>', file = fp)
