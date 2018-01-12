@@ -61,6 +61,7 @@ class KernelDecoder(nn.Module):
 
         # decoder
         self.decoder = nn.Sequential(
+            # fixme
             nn.ConvTranspose2d(self.num_channels, self.num_channels, 5, 5, 0),
             nn.BatchNorm2d(self.num_channels),
             nn.ReLU(True),
