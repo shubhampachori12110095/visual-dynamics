@@ -50,11 +50,11 @@ if __name__ == '__main__':
     model.train(False)
 
     # test path
-    test_path = os.path.join('exp', args.exp, 'test')
-    utils.shell.mkdir(test_path, clean = True)
+    repr_path = os.path.join('exp', args.exp, 'repr')
+    utils.shell.mkdir(repr_path, clean = True)
 
     # images path
-    images_path = os.path.join(test_path, 'images')
+    images_path = os.path.join(repr_path, 'images')
     utils.shell.mkdir(images_path, clean = True)
 
     # load snapshot
@@ -135,7 +135,7 @@ if __name__ == '__main__':
                 save_images(images, image_path, duration = .1, channel_first = True)
 
     # visualization
-    with open(os.path.join(test_path, 'index.html'), 'w') as fp:
+    with open(os.path.join(repr_path, 'index.html'), 'w') as fp:
         # statistics
         print('<h3>statistics</h3>', file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'means.png')), file = fp)
