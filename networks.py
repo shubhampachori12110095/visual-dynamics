@@ -28,11 +28,8 @@ class MotionEncoder(nn.Module):
         super(MotionEncoder, self).__init__()
 
         # encoder
-        self.encoder = nn.Sequential(
-            ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
-                       sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes),
-            nn.Conv2d(channels[-1], channels[-1], 4)
-        )
+        self.encoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
+                                  sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes)
         self.encoder.apply(weights_init)
 
     def forward(self, inputs):
@@ -64,6 +61,10 @@ class KernelDecoder(nn.Module):
 
         # decoder
         self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(self.num_channels, self.num_channels, 5, 5, 0),
+            nn.BatchNorm2d(self.num_channels),
+            nn.ReLU(True),
+
             ConvPool2D(channels = [self.num_channels] * (num_layers + 1), kernel_sizes = kernel_sizes),
             nn.BatchNorm2d(self.num_channels)
         )
@@ -71,7 +72,7 @@ class KernelDecoder(nn.Module):
 
     def forward(self, inputs):
         # inputs
-        inputs = inputs.view(-1, self.num_channels, self.kernel_size, self.kernel_size)
+        inputs = inputs.view(-1, self.num_channels, 1, 1)
 
         # inputs => outputs
         outputs = self.decoder.forward(inputs)
@@ -124,7 +125,7 @@ class VDNet(nn.Module):
 
         # motion encoder
         self.motion_encoder = MotionEncoder(channels = [6, 96, 96, 128, 128, 256, 256],
-                                            sampling_sizes = [4, 1, 2, 1, 2, 1],
+                                            sampling_sizes = [4, 2, 2, 2, 2, 2],
                                             kernal_sizes = 5)
 
         # kernel decoder
