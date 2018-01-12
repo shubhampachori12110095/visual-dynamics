@@ -16,7 +16,7 @@ from utils.image import resize_image, save_images
 from utils.torch import load_snapshot, to_np, to_var
 
 
-def analysis_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
+def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     # reprs path
     reprs_path = os.path.join('exp', args.exp, 'reprs')
     utils.shell.mkdir(reprs_path, clean = True)
@@ -116,7 +116,7 @@ def analysis_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
             print('</table>', file = fp)
 
 
-def analysis_fmaps(size = 256):
+def analyze_fmaps(size = 256):
     # fmaps path
     fmaps_path = os.path.join('exp', args.exp, 'fmaps')
     utils.shell.mkdir(fmaps_path, clean = True)
@@ -205,8 +205,10 @@ if __name__ == '__main__':
     # load snapshot
     means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
-    print('==> start analysing representations')
-    analysis_reprs()
+    # analyze representations
+    print('==> analyzing representations')
+    analyze_reprs()
 
-    print('==> start analysing feature maps')
-    analysis_fmaps()
+    # analyze feature maps
+    print('==> analyzing feature maps')
+    analyze_fmaps()
