@@ -203,6 +203,9 @@ if __name__ == '__main__':
     model.train(False)
 
     # load snapshot
+    if args.resume is None:
+        args.resume = os.path.join('exp', args.exp, 'latest.pth')
+
     means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
     # analyze representations
