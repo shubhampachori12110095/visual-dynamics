@@ -30,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch', default = 32, type = int)
 
     # adaptive beta
-    parser.add_argument('--beta', default = 0.00001, type = float)
+    parser.add_argument('--beta', default = 0.001, type = float)
     parser.add_argument('--max_beta', default = np.inf, type = float)
     parser.add_argument('--target_loss', default = 10, type = float)
 
@@ -125,10 +125,9 @@ if __name__ == '__main__':
         logger.scalar_summary('test-loss-kl', loss_kl.data[0], step)
 
         # beta
-        if args.target_loss is not None and loss_r.data[0] < args.target_loss:
-            if loss_kl.data[0] * args.beta < loss_r.data[0] and args.beta < args.max_beta:
-                args.beta = min(args.beta * 2, args.max_beta)
-                print('==> adjusted beta to {0}'.format(args.beta))
+        if args.target_loss is not None and loss_r.data[0] < args.target_loss and args.beta < args.max_beta:
+            args.beta = min(args.beta * 2, args.max_beta)
+            print('==> adjusted beta to {0}'.format(args.beta))
 
         # means & log_vars
         num_dists = 1024
