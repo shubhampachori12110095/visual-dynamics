@@ -28,7 +28,7 @@ class MotionEncoder(nn.Module):
         super(MotionEncoder, self).__init__()
 
         # encoder
-        self.encoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
+        self.encoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = False,
                                   sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes)
 
     def forward(self, inputs):
