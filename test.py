@@ -26,22 +26,20 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     utils.shell.mkdir(images_path, clean = True)
 
     # statistics
-    num_dists, num_dims = means.shape
-
     x, ym, yv = [], [], []
-    for k in range(num_dims):
-        x.extend([k] * num_dists)
-        ym.extend(means[:, k])
-        yv.extend(log_vars[:, k])
+    for k in range(means.shape[1]):
+        x.extend([k, k])
+        ym.extend([np.min(means[:, k]), np.max(means[:, k])])
+        yv.extend([np.min(log_vars[:, k]), np.max(log_vars[:, k])])
 
     plt.figure()
-    plt.plot(x, ym, color = 'b')
+    plt.bar(x, ym, .5, color = 'b')
     plt.xlabel('dimension')
     plt.ylabel('mean')
     plt.savefig(os.path.join(images_path, 'means.png'), bbox_inches = 'tight')
 
     plt.figure()
-    plt.plot(x, yv, color = 'b')
+    plt.bar(x, yv, .5, color = 'b')
     plt.xlabel('dimension')
     plt.ylabel('log(var)')
     plt.savefig(os.path.join(images_path, 'vars.png'), bbox_inches = 'tight')
@@ -52,23 +50,7 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     magnitudes = np.max(np.abs(means), axis = 0)
     indices = np.argsort(-magnitudes)
 
-    dimensions, exclusions = [], set()
-    for k in indices:
-        if magnitudes[k] > threshold and k not in exclusions:
-            dimensions.append(k)
-
-            for i in range(k)[::-1]:
-                if magnitudes[i] > threshold:
-                    exclusions.add(i)
-                else:
-                    break
-
-            for i in range(k, num_dims):
-                if magnitudes[i] > threshold:
-                    exclusions.add(i)
-                else:
-                    break
-
+    dimensions = [k for k in indices if magnitudes[k] > threshold]
     dimensions = dimensions[:max_dims]
     print('==> dominated dimensions = {0}'.format(dimensions))
 
