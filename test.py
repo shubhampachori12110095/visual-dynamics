@@ -16,6 +16,57 @@ from utils.image import resize_image, save_images
 from utils.torch import load_snapshot, to_np, to_var
 
 
+def analyze_fmaps(size = 256):
+    # fmaps path
+    fmaps_path = os.path.join('exp', args.exp, 'fmaps')
+    utils.shell.mkdir(fmaps_path, clean = True)
+
+    # images path
+    images_path = os.path.join(fmaps_path, 'images')
+    utils.shell.mkdir(images_path, clean = True)
+
+    # feature maps
+    for split in ['train', 'test']:
+        inputs, targets = iter(loaders[split]).next()
+        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
+
+        outputs, features = model.forward(inputs, returns = ['features'])
+        num_scales, num_channels = len(features), features[0].size(1)
+
+        for s in trange(num_scales):
+            input, feature = inputs[0][s], features[s]
+
+            for b in trange(args.batch, leave = False):
+                image = resize_image(to_np(input[b]), size = size, channel_first = True)
+
+                for c in trange(num_channels, leave = False):
+                    fmap = resize_image(to_np(feature[b, c]), size = size, channel_first = True)
+
+                    # normalize
+                    if np.min(fmap) < np.max(fmap):
+                        fmap = (fmap - np.min(fmap)) / (np.max(fmap) - np.min(fmap))
+
+                    # save images
+                    image_path = os.path.join(images_path, '{0}-{1}-{2}-{3}.gif'.format(split, s, c, b))
+                    save_images([image, fmap], image_path, channel_first = True)
+
+    # visualization
+    with open(os.path.join(fmaps_path, 'index.html'), 'w') as fp:
+        for s in range(num_scales):
+            for c in range(num_channels):
+                print('<h3>scale [{0}] - channel [{1}]</h3>'.format(s + 1, c + 1), file = fp)
+                print('<table border="1" style="table-layout: fixed;">', file = fp)
+                for split in ['train', 'test']:
+                    print('<tr>', file = fp)
+                    for b in range(args.batch):
+                        image_path = os.path.join('images', '{0}-{1}-{2}-{3}.gif'.format(split, s, c, b))
+                        print('<td halign="center" style="word-wrap: break-word;" valign="top">', file = fp)
+                        print('<img src="{0}" style="width:128px;">'.format(image_path), file = fp)
+                        print('</td>', file = fp)
+                    print('</tr>', file = fp)
+                print('</table>', file = fp)
+
+
 def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     # reprs path
     reprs_path = os.path.join('exp', args.exp, 'reprs')
@@ -50,8 +101,7 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     magnitudes = np.max(np.abs(means), axis = 0)
     indices = np.argsort(-magnitudes)
 
-    dimensions = [k for k in indices if magnitudes[k] > threshold]
-    dimensions = dimensions[:max_dims]
+    dimensions = [k for k in indices if magnitudes[k] > threshold][:max_dims]
     print('==> dominated dimensions = {0}'.format(dimensions))
 
     for split in ['train', 'test']:
@@ -98,57 +148,6 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
             print('</table>', file = fp)
 
 
-def analyze_fmaps(size = 256):
-    # fmaps path
-    fmaps_path = os.path.join('exp', args.exp, 'fmaps')
-    utils.shell.mkdir(fmaps_path, clean = True)
-
-    # images path
-    images_path = os.path.join(fmaps_path, 'images')
-    utils.shell.mkdir(images_path, clean = True)
-
-    # feature maps
-    for split in ['train', 'test']:
-        inputs, targets = iter(loaders[split]).next()
-        inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
-
-        outputs, features = model.forward(inputs, returns = ['features'])
-
-        num_scales, num_levels = len(features), features[0].size(1)
-        for i in trange(num_scales):
-            input, feature = inputs[0][i], features[i]
-
-            for k in trange(args.batch, leave = False):
-                image = resize_image(to_np(input[k]), size, channel_first = True)
-
-                for l in trange(num_levels, leave = False):
-                    fmap = resize_image(to_np(feature[k, l]), size, channel_first = True)
-
-                    # normalize
-                    if np.min(fmap) < np.max(fmap):
-                        fmap = (fmap - np.min(fmap)) / (np.max(fmap) - np.min(fmap))
-
-                    # save images
-                    image_path = os.path.join(images_path, '{0}-{1}-{2}-{3}.gif'.format(split, i, l, k))
-                    save_images([image, fmap], image_path, channel_first = True)
-
-    # visualization
-    with open(os.path.join(fmaps_path, 'index.html'), 'w') as fp:
-        for i in range(num_scales):
-            for l in range(num_levels):
-                print('<h3>scale [{0}], level [{1}]</h3>'.format(i + 1, l + 1), file = fp)
-                print('<table border="1" style="table-layout: fixed;">', file = fp)
-                for split in ['train', 'test']:
-                    print('<tr>', file = fp)
-                    for k in range(args.batch):
-                        image_path = os.path.join('images', '{0}-{1}-{2}-{3}.gif'.format(split, i, l, k))
-                        print('<td halign="center" style="word-wrap: break-word;" valign="top">', file = fp)
-                        print('<img src="{0}" style="width:128px;">'.format(image_path), file = fp)
-                        print('</td>', file = fp)
-                    print('</tr>', file = fp)
-                print('</table>', file = fp)
-
-
 if __name__ == '__main__':
     # argument parser
     parser = argparse.ArgumentParser()
@@ -190,10 +189,10 @@ if __name__ == '__main__':
 
     means, log_vars = load_snapshot(args.resume, model = model, returns = ['means', 'log_vars'])
 
-    # analyze representations
-    print('==> analyzing representations')
-    analyze_reprs()
-
     # analyze feature maps
     print('==> analyzing feature maps')
     analyze_fmaps()
+
+    # analyze representations
+    print('==> analyzing representations')
+    analyze_reprs()
