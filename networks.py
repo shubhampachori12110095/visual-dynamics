@@ -18,11 +18,13 @@ class ImageEncoder(nn.Module):
         # modules
         self.encoders = []
         for k in range(num_scales):
-            self.encoders.append(ConvPool2D(channels = self.channels,
-                                            kernel_sizes = self.kernel_sizes,
-                                            last_nonlinear = True,
-                                            sampling_type = 'SUB-MAXPOOL',
-                                            sampling_sizes = self.sampling_sizes))
+            self.encoders.append(ConvPool2D(
+                channels = self.channels,
+                kernel_sizes = self.kernel_sizes,
+                last_nonlinear = True,
+                sampling_type = 'SUB-MAXPOOL',
+                sampling_sizes = self.sampling_sizes
+            ))
             self.add_module('encoder-{0}'.format(k + 1), self.encoders[-1])
         self.apply(weights_init)
 
@@ -39,11 +41,13 @@ class MotionEncoder(nn.Module):
         self.sampling_sizes = sampling_sizes
 
         # modules
-        self.encoder = ConvPool2D(channels = self.channels,
-                                  kernel_sizes = self.kernel_sizes,
-                                  last_nonlinear = False,
-                                  sampling_type = 'SUB-MAXPOOL',
-                                  sampling_sizes = self.sampling_sizes)
+        self.encoder = ConvPool2D(
+            channels = self.channels,
+            kernel_sizes = self.kernel_sizes,
+            last_nonlinear = False,
+            sampling_type = 'SUB-MAXPOOL',
+            sampling_sizes = self.sampling_sizes
+        )
         self.apply(weights_init)
 
     def forward(self, inputs):
@@ -67,7 +71,7 @@ class KernelDecoder(nn.Module):
         self.kernel_sizes = kernel_sizes
 
         # channels
-        self.num_channels = num_scales * out_channels * (in_channels // num_groups)
+        self.num_channels = self.num_scales * self.out_channels * (self.in_channels // self.num_groups)
 
         # modules
         self.decoder = nn.Sequential(
@@ -76,7 +80,10 @@ class KernelDecoder(nn.Module):
             nn.BatchNorm2d(self.num_channels),
             nn.ReLU(True),
 
-            ConvPool2D(channels = [self.num_channels] * (num_layers + 1), kernel_sizes = kernel_sizes),
+            ConvPool2D(
+                channels = [self.num_channels] * (num_layers + 1),
+                kernel_sizes = kernel_sizes
+            ),
             nn.BatchNorm2d(self.num_channels)
         )
         self.apply(weights_init)
@@ -120,26 +127,34 @@ class VDNet(nn.Module):
         self.scales = scales
 
         # modules
-        self.image_encoder = ImageEncoder(num_scales = len(scales),
-                                          channels = [3, 64, 64, 64, 32],
-                                          sampling_sizes = [2, 1, 2, 1],
-                                          kernel_sizes = 5)
-        self.motion_encoder = MotionEncoder(channels = [6, 96, 96, 128, 128, 256, 256],
-                                            sampling_sizes = [4, 2, 2, 2, 2, 2],
-                                            kernel_sizes = 5)
-        self.kernel_decoder = KernelDecoder(num_scales = len(scales),
-                                            in_channels = 32,
-                                            out_channels = 32,
-                                            num_groups = 32,
-                                            kernel_size = 5,
-                                            num_layers = 2,
-                                            kernel_sizes = 5)
-        self.motion_decoder = MotionDecoder(scales = scales,
-                                            channels = [len(scales) * 32, 128, 128, 3],
-                                            kernel_sizes = [9, 1, 1])
+        self.image_encoder = ImageEncoder(
+            num_scales = len(scales),
+            channels = [3, 64, 64, 64, 32],
+            sampling_sizes = [2, 1, 2, 1],
+            kernel_sizes = 5
+        )
+        self.motion_encoder = MotionEncoder(
+            channels = [6, 96, 96, 128, 128, 256, 256],
+            sampling_sizes = [4, 2, 2, 2, 2, 2],
+            kernel_sizes = 5
+        )
+        self.kernel_decoder = KernelDecoder(
+            num_scales = len(scales),
+            in_channels = 32,
+            out_channels = 32,
+            num_groups = 32,
+            kernel_size = 5,
+            num_layers = 2,
+            kernel_sizes = 5
+        )
+        self.motion_decoder = MotionDecoder(
+            scales = scales,
+            channels = [len(scales) * 32, 128, 128, 3],
+            kernel_sizes = [9, 1, 1]
+        )
+        self.apply(weights_init)
 
     def forward(self, inputs, mean = None, log_var = None, z = None, returns = None):
-        # inputs
         if isinstance(inputs, list) and len(inputs) == 2:
             i_inputs, m_inputs = inputs
         else:
