@@ -8,15 +8,23 @@ from utils.torch import ConvPool2D, conv_cross2d, gaussian_sampler, weights_init
 
 
 class ImageEncoder(nn.Module):
-    def __init__(self, num_scales, channels, kernal_sizes, sampling_sizes):
+    def __init__(self, num_scales, channels, kernel_sizes, sampling_sizes):
         super(ImageEncoder, self).__init__()
+        self.num_scales = num_scales
+        self.channels = channels
+        self.kernel_sizes = kernel_sizes
+        self.sampling_sizes = sampling_sizes
 
-        # encoders
+        # modules
         self.encoders = []
         for k in range(num_scales):
-            self.encoders.append(ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = True,
-                                            sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes))
+            self.encoders.append(ConvPool2D(channels = self.channels,
+                                            kernel_sizes = self.kernel_sizes,
+                                            last_nonlinear = True,
+                                            sampling_type = 'SUB-MAXPOOL',
+                                            sampling_sizes = self.sampling_sizes))
             self.add_module('encoder-{0}'.format(k + 1), self.encoders[-1])
+        self.apply(weights_init)
 
     def forward(self, inputs):
         outputs = [encoder.forward(input) for encoder, input in zip(self.encoders, inputs)]
@@ -24,22 +32,25 @@ class ImageEncoder(nn.Module):
 
 
 class MotionEncoder(nn.Module):
-    def __init__(self, channels, kernal_sizes, sampling_sizes):
+    def __init__(self, channels, kernel_sizes, sampling_sizes):
         super(MotionEncoder, self).__init__()
+        self.channels = channels
+        self.kernel_sizes = kernel_sizes
+        self.sampling_sizes = sampling_sizes
 
-        # encoder
-        self.encoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes, last_nonlinear = False,
-                                  sampling_type = 'SUB-MAXPOOL', sampling_sizes = sampling_sizes)
+        # modules
+        self.encoder = ConvPool2D(channels = self.channels,
+                                  kernel_sizes = self.kernel_sizes,
+                                  last_nonlinear = False,
+                                  sampling_type = 'SUB-MAXPOOL',
+                                  sampling_sizes = self.sampling_sizes)
+        self.apply(weights_init)
 
     def forward(self, inputs):
-        # inputs
         inputs = torch.cat(inputs, 1)
-
-        # inputs => outputs
         outputs = self.encoder.forward(inputs)
         outputs = outputs.view(inputs.size(0), -1)
 
-        # outputs => mean, log_var
         mean, log_var = torch.split(outputs, outputs.size(1) // 2, 1)
         return mean, log_var
 
@@ -47,18 +58,18 @@ class MotionEncoder(nn.Module):
 class KernelDecoder(nn.Module):
     def __init__(self, num_scales, in_channels, out_channels, kernel_size, num_groups, num_layers, kernel_sizes):
         super(KernelDecoder, self).__init__()
-
-        # settings
         self.num_scales = num_scales
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.num_groups = num_groups
+        self.num_layers = num_layers
+        self.kernel_sizes = kernel_sizes
 
         # channels
         self.num_channels = num_scales * out_channels * (in_channels // num_groups)
 
-        # decoder
+        # modules
         self.decoder = nn.Sequential(
             # fixme: deconvolution
             nn.ConvTranspose2d(self.num_channels, self.num_channels, 5, 5, 0),
@@ -68,42 +79,37 @@ class KernelDecoder(nn.Module):
             ConvPool2D(channels = [self.num_channels] * (num_layers + 1), kernel_sizes = kernel_sizes),
             nn.BatchNorm2d(self.num_channels)
         )
-        self.decoder.apply(weights_init)
+        self.apply(weights_init)
 
     def forward(self, inputs):
-        # inputs
         inputs = inputs.view(-1, self.num_channels, 1, 1)
-
-        # inputs => outputs
         outputs = self.decoder.forward(inputs)
-
-        # outputs
         outputs = outputs.view(-1, self.num_scales, self.out_channels, self.in_channels // self.num_groups,
                                self.kernel_size, self.kernel_size)
         return outputs
 
 
 class MotionDecoder(nn.Module):
-    def __init__(self, scales, channels, kernal_sizes):
+    def __init__(self, scales, channels, kernel_sizes):
         super(MotionDecoder, self).__init__()
-
-        # settings
         self.scales = scales
+        self.channels = channels
+        self.kernel_sizes = kernel_sizes
 
-        # decoder
-        self.decoder = ConvPool2D(channels = channels, kernel_sizes = kernal_sizes)
+        # modules
+        self.decoder = ConvPool2D(
+            channels = self.channels,
+            kernel_sizes = self.kernel_sizes
+        )
+        self.apply(weights_init)
 
     def forward(self, inputs):
-        # upsample
         for k, input in enumerate(inputs):
             scale_factor = int(self.scales[-1] / self.scales[k])
             if scale_factor != 1:
                 inputs[k] = F.upsample(input, scale_factor = scale_factor, mode = 'nearest')
 
-        # inputs
         inputs = torch.cat(inputs, 1)
-
-        # inputs => outputs
         outputs = self.decoder.forward(inputs)
         return outputs
 
@@ -111,30 +117,26 @@ class MotionDecoder(nn.Module):
 class VDNet(nn.Module):
     def __init__(self, scales = [.25, .5, 1, 2]):
         super(VDNet, self).__init__()
-
-        # settings
         self.scales = scales
 
-        # image encoder
+        # modules
         self.image_encoder = ImageEncoder(num_scales = len(scales),
                                           channels = [3, 64, 64, 64, 32],
                                           sampling_sizes = [2, 1, 2, 1],
-                                          kernal_sizes = 5)
-
-        # motion encoder
+                                          kernel_sizes = 5)
         self.motion_encoder = MotionEncoder(channels = [6, 96, 96, 128, 128, 256, 256],
                                             sampling_sizes = [4, 2, 2, 2, 2, 2],
-                                            kernal_sizes = 5)
-
-        # kernel decoder
+                                            kernel_sizes = 5)
         self.kernel_decoder = KernelDecoder(num_scales = len(scales),
-                                            in_channels = 32, out_channels = 32, num_groups = 32, kernel_size = 5,
-                                            num_layers = 2, kernel_sizes = 5)
-
-        # motion decoder
+                                            in_channels = 32,
+                                            out_channels = 32,
+                                            num_groups = 32,
+                                            kernel_size = 5,
+                                            num_layers = 2,
+                                            kernel_sizes = 5)
         self.motion_decoder = MotionDecoder(scales = scales,
                                             channels = [len(scales) * 32, 128, 128, 3],
-                                            kernal_sizes = [9, 1, 1])
+                                            kernel_sizes = [9, 1, 1])
 
     def forward(self, inputs, mean = None, log_var = None, z = None, returns = None):
         # inputs
@@ -160,12 +162,8 @@ class VDNet(nn.Module):
         # cross convolution
         for i, feature in enumerate(features):
             kernel = kernels[:, i, ...].contiguous()
-
-            # params
             padding = (kernel.size(-1) - 1) // 2
             num_groups = feature.size(1) // kernel.size(2)
-
-            # cross convolution
             features[i] = conv_cross2d(feature, kernel, padding = padding, groups = num_groups)
 
         # motion decoder
