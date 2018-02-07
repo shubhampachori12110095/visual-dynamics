@@ -14,7 +14,7 @@ def visualize(inputs, outputs = None, size = 256):
         outputs = np.zeros(inputs.size())
 
     images = []
-    for k, (input, output) in enumerate(zip(inputs, outputs)):
+    for input, output in zip(inputs, outputs):
         input, output = to_np(input), to_np(output)
         input = resize_image(input, output.shape[-1], channel_first = True)
 
