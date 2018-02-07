@@ -7,31 +7,34 @@ from utils.image import load_image, resize_image
 
 class MotionDataset(Dataset):
     def __init__(self, data_path, split, input_size = 128, input_scales = [.25, .5, 1, 2], target_size = 64):
-        # settings
-        self.path = data_path
+        self.data_path = data_path
+        self.split = split
         self.input_size = input_size
         self.input_scales = input_scales
         self.target_size = target_size
 
-        # dataset list
-        self.data = open(os.path.join(data_path, '{0}.txt'.format(split))).read().splitlines()
+        self.data = open(os.path.join(self.data_path, '{0}.txt'.format(self.split))).read().splitlines()
 
     def __getitem__(self, index):
-        # motion inputs
-        m1 = load_image(os.path.join(self.path, '{0}_im1.png'.format(self.data[index])),
-                        size = self.input_size, channel_first = True)
-        m2 = load_image(os.path.join(self.path, '{0}_im2.png'.format(self.data[index])),
-                        size = self.input_size, channel_first = True)
-        m_inputs = (m1, m2)
+        m_inputs, i_inputs = [], []
 
-        # image inputs
-        i_inputs = [resize_image(m1, size = int(self.input_size * input_scale), channel_first = True)
-                    for input_scale in self.input_scales]
+        for k in range(2):
+            m_inputs.append(load_image(
+                os.path.join(self.data_path, '{0}_im{1}.png'.format(self.data[index], k + 1)),
+                size = self.input_size,
+                channel_first = True
+            ))
 
-        # inputs & targets
+        for input_scale in self.input_scales:
+            i_inputs.append(resize_image(
+                m_inputs[0],
+                size = int(self.input_size * input_scale),
+                channel_first = True
+            ))
+
         inputs = (i_inputs, m_inputs)
-        targets = resize_image(m2, size = self.target_size, channel_first = True) - \
-                  resize_image(m1, size = self.target_size, channel_first = True)
+        targets = resize_image(m_inputs[1], size = self.target_size, channel_first = True) - \
+                  resize_image(m_inputs[0], size = self.target_size, channel_first = True)
 
         return inputs, targets * 128.
 

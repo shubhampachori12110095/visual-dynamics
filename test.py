@@ -17,11 +17,7 @@ from utils.torch import load_snapshot, to_np, to_var
 
 
 def analyze_fmaps(size = 256):
-    # fmaps path
     fmaps_path = os.path.join('exp', args.exp, 'fmaps')
-    utils.shell.mkdir(fmaps_path, clean = True)
-
-    # images path
     images_path = os.path.join(fmaps_path, 'images')
     utils.shell.mkdir(images_path, clean = True)
 
@@ -68,11 +64,7 @@ def analyze_fmaps(size = 256):
 
 
 def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
-    # reprs path
     reprs_path = os.path.join('exp', args.exp, 'reprs')
-    utils.shell.mkdir(reprs_path, clean = True)
-
-    # images path
     images_path = os.path.join(reprs_path, 'images')
     utils.shell.mkdir(images_path, clean = True)
 
@@ -128,12 +120,10 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
 
     # visualization
     with open(os.path.join(reprs_path, 'index.html'), 'w') as fp:
-        # statistics
         print('<h3>statistics</h3>', file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'means.png')), file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'vars.png')), file = fp)
 
-        # dimensions
         for dim in dimensions:
             print('<h3>dimension [{0}]</h3>'.format(dim), file = fp)
             print('<table border="1" style="table-layout: fixed;">', file = fp)

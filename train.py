@@ -108,7 +108,7 @@ if __name__ == '__main__':
             optimizer.step()
 
         # testing
-        model.train(False)
+        model.eval()
 
         loss_r, loss_kl = 0, 0
         for inputs, targets in tqdm(loaders['test'], desc = 'test'):
