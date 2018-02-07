@@ -26,11 +26,7 @@ class MotionDataset(Dataset):
             ))
 
         for input_scale in self.input_scales:
-            i_inputs.append(resize_image(
-                m_inputs[0],
-                size = int(self.input_size * input_scale),
-                channel_first = True
-            ))
+            i_inputs.append(resize_image(m_inputs[0], size = int(self.input_size * input_scale), channel_first = True))
 
         inputs = (i_inputs, m_inputs)
         targets = resize_image(m_inputs[1], size = self.target_size, channel_first = True) - \
