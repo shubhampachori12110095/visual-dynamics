@@ -75,14 +75,14 @@ class KernelDecoder(nn.Module):
 
         # modules
         self.decoder = nn.Sequential(
-            # fixme: deconvolution
-            nn.ConvTranspose2d(self.num_channels, self.num_channels, 5, 5, 0),
-            nn.BatchNorm2d(self.num_channels),
-            nn.ReLU(True),
-
             ConvPool2D(
-                channels = [self.num_channels] * (num_layers + 1),
-                kernel_sizes = kernel_sizes
+                channels = [self.num_channels] * 2,
+                sampling_type = 'UP-DECONV',
+                sampling_sizes = self.kernel_size
+            ),
+            ConvPool2D(
+                channels = [self.num_channels] * self.num_layers,
+                kernel_sizes = self.kernel_sizes
             ),
             nn.BatchNorm2d(self.num_channels)
         )
@@ -144,7 +144,7 @@ class VDNet(nn.Module):
             out_channels = 32,
             num_groups = 32,
             kernel_size = 5,
-            num_layers = 2,
+            num_layers = 3,
             kernel_sizes = 5
         )
         self.motion_decoder = MotionDecoder(
