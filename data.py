@@ -16,8 +16,7 @@ class MotionDataset(Dataset):
         self.data = open(os.path.join(self.data_path, '{0}.txt'.format(self.split))).read().splitlines()
 
     def __getitem__(self, index):
-        m_inputs, i_inputs = [], []
-
+        m_inputs = []
         for k in range(2):
             m_inputs.append(load_image(
                 os.path.join(self.data_path, '{0}_im{1}.png'.format(self.data[index], k + 1)),
@@ -25,6 +24,7 @@ class MotionDataset(Dataset):
                 channel_first = True
             ))
 
+        i_inputs = []
         for input_scale in self.input_scales:
             i_inputs.append(resize_image(m_inputs[0], size = int(self.input_size * input_scale), channel_first = True))
 
