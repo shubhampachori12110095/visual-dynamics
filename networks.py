@@ -54,7 +54,6 @@ class MotionEncoder(nn.Module):
         inputs = torch.cat(inputs, 1)
         outputs = self.encoder.forward(inputs)
         outputs = outputs.view(inputs.size(0), -1)
-
         mean, log_var = torch.split(outputs, outputs.size(1) // 2, 1)
         return mean, log_var
 
