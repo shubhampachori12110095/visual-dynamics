@@ -12,7 +12,7 @@ import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
-from utils.image import resize_image, save_images
+from utils.image import resize_image, save_image, save_images
 from utils.torch import load_snapshot, to_np, to_var
 
 
@@ -38,11 +38,9 @@ def analyze_fmaps(size = 256):
                 for c in trange(num_channels, leave = False):
                     fmap = resize_image(to_np(feature[b, c]), size = size, channel_first = True)
 
-                    # normalize
                     if np.min(fmap) < np.max(fmap):
                         fmap = (fmap - np.min(fmap)) / (np.max(fmap) - np.min(fmap))
 
-                    # save images
                     image_path = os.path.join(images_path, '{0}-{1}-{2}-{3}.gif'.format(split, s, c, b))
                     save_images([image, fmap], image_path, channel_first = True)
 
@@ -105,24 +103,39 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
         for dim in tqdm(dimensions):
             repr = to_np(z).copy()
 
-            # forward
             samples = []
             for val in tqdm(values, leave = False):
                 repr[:, dim] = val
                 sample = model.forward(inputs, z = to_var(repr, volatile = True))
                 samples.append(visualize(inputs, sample))
 
-            # save images
             for k in range(args.batch):
                 images = [sample[k] for sample in samples]
                 image_path = os.path.join(images_path, '{0}-{1}-{2}.gif'.format(split, k, dim))
                 save_images(images, image_path, duration = .1, channel_first = True)
+
+        inputs = visualize(inputs)
+        for k in range(args.batch):
+            image_path = os.path.join(images_path, '{0}-{1}.png'.format(split, k))
+            save_image(inputs[k], image_path, channel_first = True)
 
     # visualization
     with open(os.path.join(reprs_path, 'index.html'), 'w') as fp:
         print('<h3>statistics</h3>', file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'means.png')), file = fp)
         print('<img src="{0}">'.format(os.path.join('images', 'vars.png')), file = fp)
+
+        print('<h3>inputs</h3>', file = fp)
+        print('<table border="1" style="table-layout: fixed;">', file = fp)
+        for split in ['train', 'test']:
+            print('<tr>', file = fp)
+            for k in range(args.batch):
+                image_path = os.path.join('images', '{0}-{1}.png'.format(split, k))
+                print('<td halign="center" style="word-wrap: break-word;" valign="top">', file = fp)
+                print('<img src="{0}" style="width:128px;">'.format(image_path), file = fp)
+                print('</td>', file = fp)
+            print('</tr>', file = fp)
+        print('</table>', file = fp)
 
         for dim in dimensions:
             print('<h3>dimension [{0}]</h3>'.format(dim), file = fp)
