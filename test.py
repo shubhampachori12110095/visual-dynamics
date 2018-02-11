@@ -26,7 +26,7 @@ def analyze_fmaps(size = 256):
         inputs, targets = iter(loaders[split]).next()
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-        outputs, features = model.forward(inputs, returns = ['features'])
+        outputs, features = model.forward(inputs, returns = 'features')
         num_scales, num_channels = len(features), features[0].size(1)
 
         for s in trange(num_scales):
@@ -98,7 +98,7 @@ def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
         inputs, targets = iter(loaders[split]).next()
         inputs, targets = to_var(inputs, volatile = True), to_var(targets, volatile = True)
 
-        outputs, z = model.forward(inputs, returns = ['z'])
+        outputs, z = model.forward(inputs, returns = 'z')
 
         for dim in tqdm(dimensions):
             repr = to_np(z).copy()

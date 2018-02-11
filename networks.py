@@ -185,6 +185,8 @@ class VDNet(nn.Module):
 
         # returns
         if returns is not None:
+            if not isinstance(returns, (list, tuple)):
+                returns = [returns]
             for i, k in enumerate(returns):
                 returns[i] = locals()[k]
             return outputs, returns[0] if len(returns) == 1 else returns
