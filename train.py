@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # adaptive beta
     parser.add_argument('--beta', default = 0.001, type = float)
     parser.add_argument('--max_beta', default = np.inf, type = float)
-    parser.add_argument('--target_loss', default = 10, type = float)
+    parser.add_argument('--target_loss', default = 16, type = float)
 
     # training
     parser.add_argument('--epochs', default = 128, type = int)
