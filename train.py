@@ -9,10 +9,11 @@ from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
+from utils import set_cuda_devices
+from utils.shell import mkdir
 from utils.torch import Logger, kld_loss, load_snapshot, save_snapshot, to_np, to_var
 
 if __name__ == '__main__':
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         print('[{0}] = {1}'.format(key, getattr(args, key)))
 
     # cuda devices
-    utils.set_cuda_devices(args.gpu)
+    set_cuda_devices(args.gpu)
 
     # datasets & loaders
     data, loaders = {}, {}
@@ -64,7 +65,7 @@ if __name__ == '__main__':
 
     # experiment path
     exp_path = os.path.join('exp', args.exp)
-    utils.shell.mkdir(exp_path, clean = False)
+    mkdir(exp_path, clean = False)
 
     # logger
     logger = Logger(exp_path)

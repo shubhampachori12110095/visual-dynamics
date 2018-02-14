@@ -8,18 +8,21 @@ import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm, trange
 
-import utils
 from data import MotionDataset
 from misc import visualize
 from networks import VDNet
+from utils import set_cuda_devices
 from utils.image import resize_image, save_image, save_images
+from utils.shell import mkdir
 from utils.torch import load_snapshot, to_np, to_var
 
 
 def analyze_fmaps(size = 256):
     fmaps_path = os.path.join('exp', args.exp, 'fmaps')
+    mkdir(fmaps_path, clean = True)
+
     images_path = os.path.join(fmaps_path, 'images')
-    utils.shell.mkdir(images_path, clean = True)
+    mkdir(images_path, clean = True)
 
     # feature maps
     for split in ['train', 'test']:
@@ -63,8 +66,10 @@ def analyze_fmaps(size = 256):
 
 def analyze_reprs(max_dims = 16, threshold = .5, bound = 8., step = .2):
     reprs_path = os.path.join('exp', args.exp, 'reprs')
+    mkdir(reprs_path, clean = True)
+
     images_path = os.path.join(reprs_path, 'images')
-    utils.shell.mkdir(images_path, clean = True)
+    mkdir(images_path, clean = True)
 
     # statistics
     x, ym, yv = [], [], []
@@ -172,7 +177,7 @@ if __name__ == '__main__':
         print('[{0}] = {1}'.format(key, getattr(args, key)))
 
     # cuda devices
-    utils.set_cuda_devices(args.gpu)
+    set_cuda_devices(args.gpu)
 
     # datasets & loaders
     data, loaders = {}, {}
